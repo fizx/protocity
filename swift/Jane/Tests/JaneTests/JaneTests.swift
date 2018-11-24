@@ -25,6 +25,13 @@ final class JaneTests: XCTestCase {
         XCTAssertEqual(saved?.id, user.id)
     }
     
+    func testUUID() throws {
+        let a = Example_User.with {
+            $0.login = "bob"
+        }
+        XCTAssertEqual(a.id.count, 36)
+    }
+    
     func testFindAll() throws {
         let repo = c.resolve(Example_User.repository())!
         let a = Example_User.with { $0.id = "kyle" }
@@ -34,7 +41,12 @@ final class JaneTests: XCTestCase {
         XCTAssertEqual(saved, [a, b, nil])
     }
     
-    static var allTests = [
-        ("testExample", testCanBind, testFindOne, testFindAll),
-    ]
+    func testFindBySecondary() throws {
+        let repo = c.resolve(Example_User.repository())!
+        let a = Example_User.with { $0.login = "kyle" }
+        let b = Example_User.with { $0.login = "bob" }
+        try await(repo.save(a, b))
+        let saved = try await(repo.findByLogins([a.login, b.login, "unknown"]))
+        XCTAssertEqual(saved, [a, b, nil])
+    }
 }

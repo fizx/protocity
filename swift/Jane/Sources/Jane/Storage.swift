@@ -30,6 +30,12 @@ protocol RawStorage {
 
 struct BytesWrapper: Comparable, Equatable, Hashable, Codable {
     let array: [UInt8]
+    init(_ tableNS: String, _ fieldNS: String, _ key: Data) {
+        self.array = Array(tableNS.utf8) + Array(fieldNS.utf8) + [UInt8](key)
+    }
+    init(_ tableNS: String, _ fieldNS: String, string: String) {
+        self.array = Array(tableNS.utf8) + Array(fieldNS.utf8) + Array(string.utf8)
+    }
     init(data: Data) {
         self.array = [UInt8](data)
     }

@@ -2,19 +2,14 @@ import Promises
 import Jane
 import Swinject
 import SwinjectAutoregistration
+import Foundation
   
     
     class Example_UserRepository: Repository<Example_User> {
       
         // findOne
         func findById(_ key: String) -> Promise<Example_User?> {
-          return self.storage.get(key: BytesWrapper(string: key)).then { (maybeBytes: BytesWrapper?) -> Example_User? in
-            if let bytes = maybeBytes {
-              return try! Example_User(serializedData: bytes.toData())
-            } else {
-              return nil
-            }
-          }
+          return self._findByPKRaw(BytesWrapper("Example_User", "Id", string: key))
         }
         // findAllArray
         func findByIds(_ keys: [String]) -> Promise<[Example_User?]> {
@@ -25,20 +20,66 @@ import SwinjectAutoregistration
         func findByIds(_ keys: String...) -> Promise<[Example_User?]> {
           return all(keys.map{ findById($0)})
         }
+        
+        func _findByPKRaw(_ data: BytesWrapper) -> Promise<Example_User?> {
+          return self.storage.get(key: data).then { (maybeBytes: BytesWrapper?) -> Example_User? in
+            if let bytes = maybeBytes {
+              return try! Example_User(serializedData: bytes.toData())
+            } else {
+              return nil
+            }
+          }
+        }
+      
+      
+      
+        func findByLogin(_ key: String) -> Promise<Example_User?> {
+          return self.storage.get(key: BytesWrapper("Example_User", "Login", string: key)).then { (maybeBytes: BytesWrapper?) -> Promise<Example_User?> in
+            if let bytes = maybeBytes {
+              return self._findByPKRaw(bytes)
+            } else {
+              return Promise<Example_User?>(nil)
+            }
+          }
+        }
+        // findAllArray
+        func findByLogins(_ keys: [String]) -> Promise<[Example_User?]> {
+          return all(keys.map{ findByLogin($0)})
+        }
+        
+        // findAllVariadic
+        func findByLogins(_ keys: String...) -> Promise<[Example_User?]> {
+          return all(keys.map{ findByLogin($0)})
+        }
       
     }
     
     extension Example_User: StorageMappable {
+      
+      public static func with(
+          _ populator: (inout Example_User) throws -> ()
+        ) rethrows -> Example_User {
+          var message = Example_User()
+          message.id = UUID().uuidString
+          try populator(&message)
+          return message
+        }
+      
+        
       func toValue() -> BytesWrapper {
         return BytesWrapper(data: try! serializedData())
       } 
       func primaryIndex() -> BytesWrapper? {
         
-          return BytesWrapper(string: self.id)
+          return BytesWrapper("Example_User", "Id", string: self.id)
         
       }
       func secondaryIndexes() -> [Index: BytesWrapper] {
-        return [:]
+        var out: [Index: BytesWrapper] = [:]
+        
+          out[Index(name: BytesWrapper("Example_User", "Login", string: self.login), unique: true)] = self.primaryIndex()
+        
+        return out
       }
       
       static func repository() -> Example_UserRepository.Type {
@@ -51,13 +92,7 @@ import SwinjectAutoregistration
       
         // findOne
         func findById(_ key: String) -> Promise<Example_Account?> {
-          return self.storage.get(key: BytesWrapper(string: key)).then { (maybeBytes: BytesWrapper?) -> Example_Account? in
-            if let bytes = maybeBytes {
-              return try! Example_Account(serializedData: bytes.toData())
-            } else {
-              return nil
-            }
-          }
+          return self._findByPKRaw(BytesWrapper("Example_Account", "Id", string: key))
         }
         // findAllArray
         func findByIds(_ keys: [String]) -> Promise<[Example_Account?]> {
@@ -68,20 +103,45 @@ import SwinjectAutoregistration
         func findByIds(_ keys: String...) -> Promise<[Example_Account?]> {
           return all(keys.map{ findById($0)})
         }
+        
+        func _findByPKRaw(_ data: BytesWrapper) -> Promise<Example_Account?> {
+          return self.storage.get(key: data).then { (maybeBytes: BytesWrapper?) -> Example_Account? in
+            if let bytes = maybeBytes {
+              return try! Example_Account(serializedData: bytes.toData())
+            } else {
+              return nil
+            }
+          }
+        }
+      
+      
       
     }
     
     extension Example_Account: StorageMappable {
+      
+      public static func with(
+          _ populator: (inout Example_Account) throws -> ()
+        ) rethrows -> Example_Account {
+          var message = Example_Account()
+          message.id = UUID().uuidString
+          try populator(&message)
+          return message
+        }
+      
+        
       func toValue() -> BytesWrapper {
         return BytesWrapper(data: try! serializedData())
       } 
       func primaryIndex() -> BytesWrapper? {
         
-          return BytesWrapper(string: self.id)
+          return BytesWrapper("Example_Account", "Id", string: self.id)
         
       }
       func secondaryIndexes() -> [Index: BytesWrapper] {
-        return [:]
+        var out: [Index: BytesWrapper] = [:]
+        
+        return out
       }
       
       static func repository() -> Example_AccountRepository.Type {
@@ -94,13 +154,7 @@ import SwinjectAutoregistration
       
         // findOne
         func findById(_ key: String) -> Promise<Example_Photo?> {
-          return self.storage.get(key: BytesWrapper(string: key)).then { (maybeBytes: BytesWrapper?) -> Example_Photo? in
-            if let bytes = maybeBytes {
-              return try! Example_Photo(serializedData: bytes.toData())
-            } else {
-              return nil
-            }
-          }
+          return self._findByPKRaw(BytesWrapper("Example_Photo", "Id", string: key))
         }
         // findAllArray
         func findByIds(_ keys: [String]) -> Promise<[Example_Photo?]> {
@@ -111,20 +165,45 @@ import SwinjectAutoregistration
         func findByIds(_ keys: String...) -> Promise<[Example_Photo?]> {
           return all(keys.map{ findById($0)})
         }
+        
+        func _findByPKRaw(_ data: BytesWrapper) -> Promise<Example_Photo?> {
+          return self.storage.get(key: data).then { (maybeBytes: BytesWrapper?) -> Example_Photo? in
+            if let bytes = maybeBytes {
+              return try! Example_Photo(serializedData: bytes.toData())
+            } else {
+              return nil
+            }
+          }
+        }
+      
+      
       
     }
     
     extension Example_Photo: StorageMappable {
+      
+      public static func with(
+          _ populator: (inout Example_Photo) throws -> ()
+        ) rethrows -> Example_Photo {
+          var message = Example_Photo()
+          message.id = UUID().uuidString
+          try populator(&message)
+          return message
+        }
+      
+        
       func toValue() -> BytesWrapper {
         return BytesWrapper(data: try! serializedData())
       } 
       func primaryIndex() -> BytesWrapper? {
         
-          return BytesWrapper(string: self.id)
+          return BytesWrapper("Example_Photo", "Id", string: self.id)
         
       }
       func secondaryIndexes() -> [Index: BytesWrapper] {
-        return [:]
+        var out: [Index: BytesWrapper] = [:]
+        
+        return out
       }
       
       static func repository() -> Example_PhotoRepository.Type {
@@ -135,9 +214,13 @@ import SwinjectAutoregistration
     
     class Example_HelloRequestRepository: Repository<Example_HelloRequest> {
       
+      
+      
     }
     
     extension Example_HelloRequest: StorageMappable {
+      
+        
       func toValue() -> BytesWrapper {
         return BytesWrapper(data: try! serializedData())
       } 
@@ -147,7 +230,9 @@ import SwinjectAutoregistration
         
       }
       func secondaryIndexes() -> [Index: BytesWrapper] {
-        return [:]
+        var out: [Index: BytesWrapper] = [:]
+        
+        return out
       }
       
       static func repository() -> Example_HelloRequestRepository.Type {
@@ -158,9 +243,13 @@ import SwinjectAutoregistration
     
     class Example_HelloResponseRepository: Repository<Example_HelloResponse> {
       
+      
+      
     }
     
     extension Example_HelloResponse: StorageMappable {
+      
+        
       func toValue() -> BytesWrapper {
         return BytesWrapper(data: try! serializedData())
       } 
@@ -170,7 +259,9 @@ import SwinjectAutoregistration
         
       }
       func secondaryIndexes() -> [Index: BytesWrapper] {
-        return [:]
+        var out: [Index: BytesWrapper] = [:]
+        
+        return out
       }
       
       static func repository() -> Example_HelloResponseRepository.Type {

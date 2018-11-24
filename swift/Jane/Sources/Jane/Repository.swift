@@ -9,11 +9,17 @@ class Repository<V: StorageMappable> {
     }
     
     func save(_ objs: V...) -> Promise<Void> {
-        let promises = objs.map { obj -> Promise<Void> in
+        var promises: [Promise<Void>] = []
+        
+        for obj in objs {
             let key = obj.primaryIndex()
             let value = obj.toValue()
-            return self.storage.put(key: key!, value: value)
+            promises += [self.storage.put(key: key!, value: value)]
+            for (index, value) in obj.secondaryIndexes() {
+                promises += [self.storage.put(key: index.name, value: value)]
+            }
         }
+        
         return all(promises).void
     }
 }
