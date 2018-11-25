@@ -5,10 +5,17 @@ import "google/protobuf/descriptor.proto";
 package jane;
 
 enum Indexes {
-  NONE = 0;
+  NO_INDEX = 0;
   PRIMARY = 1;
   UNIQUE = 2;
   FOREIGN = 3;
+  SIMPLE = 4;
+}
+
+enum AutoTimestamp {
+  NO_TIMESTAMP = 0;
+  CREATION = 1;
+  UPDATE = 2;
 }
 
 message Index {
@@ -18,4 +25,5 @@ message Index {
 
 extend google.protobuf.FieldOptions {
   optional Index index = 50001;
+  optional AutoTimestamp timestamp = 50002;
 }

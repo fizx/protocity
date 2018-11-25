@@ -76,6 +76,52 @@ struct Example_Account {
   init() {}
 }
 
+struct Example_Message {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  var id: String {
+    get {return _storage._id}
+    set {_uniqueStorage()._id = newValue}
+  }
+
+  var fromUserID: String {
+    get {return _storage._fromUserID}
+    set {_uniqueStorage()._fromUserID = newValue}
+  }
+
+  var toUserID: String {
+    get {return _storage._toUserID}
+    set {_uniqueStorage()._toUserID = newValue}
+  }
+
+  var sentAt: SwiftProtobuf.Google_Protobuf_Timestamp {
+    get {return _storage._sentAt ?? SwiftProtobuf.Google_Protobuf_Timestamp()}
+    set {_uniqueStorage()._sentAt = newValue}
+  }
+  /// Returns true if `sentAt` has been explicitly set.
+  var hasSentAt: Bool {return _storage._sentAt != nil}
+  /// Clears the value of `sentAt`. Subsequent reads from it will return its default value.
+  mutating func clearSentAt() {_uniqueStorage()._sentAt = nil}
+
+  var senderTime: String {
+    get {return _storage._senderTime}
+    set {_uniqueStorage()._senderTime = newValue}
+  }
+
+  var recipientTime: String {
+    get {return _storage._recipientTime}
+    set {_uniqueStorage()._recipientTime = newValue}
+  }
+
+  var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  init() {}
+
+  fileprivate var _storage = _StorageClass.defaultInstance
+}
+
 struct Example_Photo {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
@@ -247,6 +293,107 @@ extension Example_Account: SwiftProtobuf.Message, SwiftProtobuf._MessageImplemen
     if lhs.id != rhs.id {return false}
     if lhs.encryptedPassword != rhs.encryptedPassword {return false}
     if lhs.salt != rhs.salt {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Example_Message: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  static let protoMessageName: String = _protobuf_package + ".Message"
+  static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
+    1: .same(proto: "id"),
+    2: .standard(proto: "from_user_id"),
+    3: .standard(proto: "to_user_id"),
+    4: .standard(proto: "sent_at"),
+    5: .standard(proto: "sender_time"),
+    6: .standard(proto: "recipient_time"),
+  ]
+
+  fileprivate class _StorageClass {
+    var _id: String = String()
+    var _fromUserID: String = String()
+    var _toUserID: String = String()
+    var _sentAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
+    var _senderTime: String = String()
+    var _recipientTime: String = String()
+
+    static let defaultInstance = _StorageClass()
+
+    private init() {}
+
+    init(copying source: _StorageClass) {
+      _id = source._id
+      _fromUserID = source._fromUserID
+      _toUserID = source._toUserID
+      _sentAt = source._sentAt
+      _senderTime = source._senderTime
+      _recipientTime = source._recipientTime
+    }
+  }
+
+  fileprivate mutating func _uniqueStorage() -> _StorageClass {
+    if !isKnownUniquelyReferenced(&_storage) {
+      _storage = _StorageClass(copying: _storage)
+    }
+    return _storage
+  }
+
+  mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    _ = _uniqueStorage()
+    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
+      while let fieldNumber = try decoder.nextFieldNumber() {
+        switch fieldNumber {
+        case 1: try decoder.decodeSingularStringField(value: &_storage._id)
+        case 2: try decoder.decodeSingularStringField(value: &_storage._fromUserID)
+        case 3: try decoder.decodeSingularStringField(value: &_storage._toUserID)
+        case 4: try decoder.decodeSingularMessageField(value: &_storage._sentAt)
+        case 5: try decoder.decodeSingularStringField(value: &_storage._senderTime)
+        case 6: try decoder.decodeSingularStringField(value: &_storage._recipientTime)
+        default: break
+        }
+      }
+    }
+  }
+
+  func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    try withExtendedLifetime(_storage) { (_storage: _StorageClass) in
+      if !_storage._id.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._id, fieldNumber: 1)
+      }
+      if !_storage._fromUserID.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._fromUserID, fieldNumber: 2)
+      }
+      if !_storage._toUserID.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._toUserID, fieldNumber: 3)
+      }
+      if let v = _storage._sentAt {
+        try visitor.visitSingularMessageField(value: v, fieldNumber: 4)
+      }
+      if !_storage._senderTime.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._senderTime, fieldNumber: 5)
+      }
+      if !_storage._recipientTime.isEmpty {
+        try visitor.visitSingularStringField(value: _storage._recipientTime, fieldNumber: 6)
+      }
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  static func ==(lhs: Example_Message, rhs: Example_Message) -> Bool {
+    if lhs._storage !== rhs._storage {
+      let storagesAreEqual: Bool = withExtendedLifetime((lhs._storage, rhs._storage)) { (_args: (_StorageClass, _StorageClass)) in
+        let _storage = _args.0
+        let rhs_storage = _args.1
+        if _storage._id != rhs_storage._id {return false}
+        if _storage._fromUserID != rhs_storage._fromUserID {return false}
+        if _storage._toUserID != rhs_storage._toUserID {return false}
+        if _storage._sentAt != rhs_storage._sentAt {return false}
+        if _storage._senderTime != rhs_storage._senderTime {return false}
+        if _storage._recipientTime != rhs_storage._recipientTime {return false}
+        return true
+      }
+      if !storagesAreEqual {return false}
+    }
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

@@ -49,4 +49,11 @@ final class JaneTests: XCTestCase {
         let saved = try await(repo.findByLogins([a.login, b.login, "unknown"]))
         XCTAssertEqual(saved, [a, b, nil])
     }
+    
+    func testUniqueConstraint() throws {
+        let repo = c.resolve(Example_User.repository())!
+        let a = Example_User.with { $0.login = "kyle" }
+        let b = Example_User.with { $0.login = "kyle" }
+        XCTAssertThrowsError(try await(repo.save(a, b)))
+    }
 }

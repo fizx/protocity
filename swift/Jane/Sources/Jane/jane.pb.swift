@@ -150,6 +150,68 @@ import Foundation
     }
     
     
+    class Example_MessageRepository: Repository<Example_Message> {
+      
+        // findOne
+        func findById(_ key: String) -> Promise<Example_Message?> {
+          return self._findByPKRaw(BytesWrapper("Example_Message", "Id", string: key))
+        }
+        // findAllArray
+        func findByIds(_ keys: [String]) -> Promise<[Example_Message?]> {
+          return all(keys.map{ findById($0)})
+        }
+        
+        // findAllVariadic
+        func findByIds(_ keys: String...) -> Promise<[Example_Message?]> {
+          return all(keys.map{ findById($0)})
+        }
+        
+        func _findByPKRaw(_ data: BytesWrapper) -> Promise<Example_Message?> {
+          return self.storage.get(key: data).then { (maybeBytes: BytesWrapper?) -> Example_Message? in
+            if let bytes = maybeBytes {
+              return try! Example_Message(serializedData: bytes.toData())
+            } else {
+              return nil
+            }
+          }
+        }
+      
+      
+      
+    }
+    
+    extension Example_Message: StorageMappable {
+      
+      public static func with(
+          _ populator: (inout Example_Message) throws -> ()
+        ) rethrows -> Example_Message {
+          var message = Example_Message()
+          message.id = UUID().uuidString
+          try populator(&message)
+          return message
+        }
+      
+        
+      func toValue() -> BytesWrapper {
+        return BytesWrapper(data: try! serializedData())
+      } 
+      func primaryIndex() -> BytesWrapper? {
+        
+          return BytesWrapper("Example_Message", "Id", string: self.id)
+        
+      }
+      func secondaryIndexes() -> [Index: BytesWrapper] {
+        var out: [Index: BytesWrapper] = [:]
+        
+        return out
+      }
+      
+      static func repository() -> Example_MessageRepository.Type {
+        return Example_MessageRepository.self
+      }
+    }
+    
+    
     class Example_PhotoRepository: Repository<Example_Photo> {
       
         // findOne
@@ -278,6 +340,8 @@ import Foundation
         container.autoregister(Example_UserRepository.self, initializer: Example_UserRepository.init)
       
         container.autoregister(Example_AccountRepository.self, initializer: Example_AccountRepository.init)
+      
+        container.autoregister(Example_MessageRepository.self, initializer: Example_MessageRepository.init)
       
         container.autoregister(Example_PhotoRepository.self, initializer: Example_PhotoRepository.init)
       
