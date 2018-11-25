@@ -56,4 +56,13 @@ final class JaneTests: XCTestCase {
         let b = Example_User.with { $0.login = "kyle" }
         XCTAssertThrowsError(try await(repo.save(a, b)))
     }
+    
+    func testCompositeKey() throws {
+        let repo = c.resolve(Example_User.repository())!
+        let user = Example_User.with { $0.id = "kyle" }
+        try await(repo.save(user))
+        let saved = try await(repo.findById(user.id))
+        XCTAssertNotNil(saved)
+        XCTAssertEqual(saved?.id, user.id)
+    }
 }

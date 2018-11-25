@@ -21,12 +21,12 @@ message Account {
 }
 
 message Message {
-    string id = 1 [(jane.index).type=PRIMARY];
-    string from_user_id = 2;
-    string to_user_id = 3;
-    google.protobuf.Timestamp sent_at = 4 [(jane.timestamp)=CREATION];
-    string sender_time = 5 [(jane.index) = {type: SIMPLE, keys: [2, 4]}];
-    string recipient_time = 6 [(jane.index) = {type: SIMPLE, keys: [3, 4]}];
+  option (jane.composite_index) = {type: SIMPLE, fields: [2, 4], name: "sender_time"};
+  option (jane.composite_index) = {type: SIMPLE, fields: [3, 4], name: "recipient_time"};
+  string id = 1 [(jane.index).type=PRIMARY];
+  string from_user_id = 2;
+  string to_user_id = 3;
+  google.protobuf.Timestamp sent_at = 4 [(jane.timestamp)=CREATION];
 }
 
 message Photo {

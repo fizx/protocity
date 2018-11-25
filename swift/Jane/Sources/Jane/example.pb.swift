@@ -105,16 +105,6 @@ struct Example_Message {
   /// Clears the value of `sentAt`. Subsequent reads from it will return its default value.
   mutating func clearSentAt() {_uniqueStorage()._sentAt = nil}
 
-  var senderTime: String {
-    get {return _storage._senderTime}
-    set {_uniqueStorage()._senderTime = newValue}
-  }
-
-  var recipientTime: String {
-    get {return _storage._recipientTime}
-    set {_uniqueStorage()._recipientTime = newValue}
-  }
-
   var unknownFields = SwiftProtobuf.UnknownStorage()
 
   init() {}
@@ -305,8 +295,6 @@ extension Example_Message: SwiftProtobuf.Message, SwiftProtobuf._MessageImplemen
     2: .standard(proto: "from_user_id"),
     3: .standard(proto: "to_user_id"),
     4: .standard(proto: "sent_at"),
-    5: .standard(proto: "sender_time"),
-    6: .standard(proto: "recipient_time"),
   ]
 
   fileprivate class _StorageClass {
@@ -314,8 +302,6 @@ extension Example_Message: SwiftProtobuf.Message, SwiftProtobuf._MessageImplemen
     var _fromUserID: String = String()
     var _toUserID: String = String()
     var _sentAt: SwiftProtobuf.Google_Protobuf_Timestamp? = nil
-    var _senderTime: String = String()
-    var _recipientTime: String = String()
 
     static let defaultInstance = _StorageClass()
 
@@ -326,8 +312,6 @@ extension Example_Message: SwiftProtobuf.Message, SwiftProtobuf._MessageImplemen
       _fromUserID = source._fromUserID
       _toUserID = source._toUserID
       _sentAt = source._sentAt
-      _senderTime = source._senderTime
-      _recipientTime = source._recipientTime
     }
   }
 
@@ -347,8 +331,6 @@ extension Example_Message: SwiftProtobuf.Message, SwiftProtobuf._MessageImplemen
         case 2: try decoder.decodeSingularStringField(value: &_storage._fromUserID)
         case 3: try decoder.decodeSingularStringField(value: &_storage._toUserID)
         case 4: try decoder.decodeSingularMessageField(value: &_storage._sentAt)
-        case 5: try decoder.decodeSingularStringField(value: &_storage._senderTime)
-        case 6: try decoder.decodeSingularStringField(value: &_storage._recipientTime)
         default: break
         }
       }
@@ -369,12 +351,6 @@ extension Example_Message: SwiftProtobuf.Message, SwiftProtobuf._MessageImplemen
       if let v = _storage._sentAt {
         try visitor.visitSingularMessageField(value: v, fieldNumber: 4)
       }
-      if !_storage._senderTime.isEmpty {
-        try visitor.visitSingularStringField(value: _storage._senderTime, fieldNumber: 5)
-      }
-      if !_storage._recipientTime.isEmpty {
-        try visitor.visitSingularStringField(value: _storage._recipientTime, fieldNumber: 6)
-      }
     }
     try unknownFields.traverse(visitor: &visitor)
   }
@@ -388,8 +364,6 @@ extension Example_Message: SwiftProtobuf.Message, SwiftProtobuf._MessageImplemen
         if _storage._fromUserID != rhs_storage._fromUserID {return false}
         if _storage._toUserID != rhs_storage._toUserID {return false}
         if _storage._sentAt != rhs_storage._sentAt {return false}
-        if _storage._senderTime != rhs_storage._senderTime {return false}
-        if _storage._recipientTime != rhs_storage._recipientTime {return false}
         return true
       }
       if !storagesAreEqual {return false}

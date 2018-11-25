@@ -18,12 +18,21 @@ enum AutoTimestamp {
   UPDATE = 2;
 }
 
-message Index {
+message FieldIndex {
   required Indexes type = 1;
-  repeated int32 keys = 2;
+}
+
+message MessageIndex {
+  required Indexes type = 1;
+  repeated int32 fields = 2;
+  required string name = 3;
 }
 
 extend google.protobuf.FieldOptions {
-  optional Index index = 50001;
+  optional FieldIndex index = 50003;
   optional AutoTimestamp timestamp = 50002;
+}
+
+extend google.protobuf.MessageOptions {
+  repeated MessageIndex composite_index = 50001;
 }
