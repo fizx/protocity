@@ -149,8 +149,12 @@ class TransactionStore: RawStorage {
     }
     
     func rollback() -> Promise<Void> {
-        inner.refCount[readVersion]! -= 1
-        return Promise(())
+        let p = Promise<Void>.pending()
+        inner.transactions.async {
+            self.inner.refCount[self.readVersion]! -= 1
+            p.fulfill(())
+        }
+        return p
     }
     
     private func checkForConflicts() throws {
