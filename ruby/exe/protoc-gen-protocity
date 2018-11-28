@@ -90,7 +90,7 @@ request = Google::Protobuf::Compiler::CodeGeneratorRequest.decode(STDIN.read)
 template = ERB.new(DATA.read)
 content = postprocess(template.result(binding))
 file = Google::Protobuf::Compiler::CodeGeneratorResponse::File.new
-file.name = "jane.meta.swift"
+file.name = "protocity.meta.swift"
 file.content = content
 response = Google::Protobuf::Compiler::CodeGeneratorResponse.new
 response.file << file
@@ -98,7 +98,7 @@ print response.encode
 
 __END__
 import Promises
-import Jane
+import Protocity
 import Swinject
 import SwinjectAutoregistration
 import Foundation
@@ -185,7 +185,7 @@ request.proto_file.select{|f| desired.include?(f.name) }.each do |file|
           return self._indirectFind(Keys.make("<%=klass%>", "<%=key.name%>"
           <% subfields.each do |f| %>
       $trim$ ,
-      $trim$ Jane_Key.with { $0.<%=type_label(f)%> = <%=f.name%> }
+      $trim$ Protocity_Key.with { $0.<%=type_label(f)%> = <%=f.name%> }
           <% end %>
           ))
         }
@@ -201,15 +201,15 @@ request.proto_file.select{|f| desired.include?(f.name) }.each do |file|
             let lowerBound = Keys.make("<%=klass%>", "<%=key.name%>"
             <% subfields.each do |f| %>
         $trim$ ,
-        $trim$ Jane_Key.with { $0.<%=type_label(f)%> = <%=camel(f.name)%> }
+        $trim$ Protocity_Key.with { $0.<%=type_label(f)%> = <%=camel(f.name)%> }
             <% end %>
             )
             let upperBound = Keys.make("<%=klass%>", "<%=key.name%>"
             <% subfields.each do |f| %>
         $trim$ ,
-        $trim$ Jane_Key.with { $0.<%=type_label(f)%> = <%=camel(f.name)%> }
+        $trim$ Protocity_Key.with { $0.<%=type_label(f)%> = <%=camel(f.name)%> }
             <% end %>,
-            Jane_Key.with { $0.bytes = Data(repeating: 255, count: 16) }
+            Protocity_Key.with { $0.bytes = Data(repeating: 255, count: 16) }
             )
             return self._indirectFind(lowerBound..<upperBound, limit: limit)
           }
@@ -231,12 +231,12 @@ request.proto_file.select{|f| desired.include?(f.name) }.each do |file|
         return try! serializedData()
       } 
       
-      func primaryIndex() -> Jane_StorageKey {
+      func primaryIndex() -> Protocity_StorageKey {
           return Keys.make("<%=klass%>", "<%=primary_key.name%>", <%=type_label(primary_key) %>: self.<%=primary_key.name%>)
       }
       
-      func secondaryIndexes() -> [Jane_StorageKey] {
-        var indexes: [Jane_StorageKey]  = []
+      func secondaryIndexes() -> [Protocity_StorageKey] {
+        var indexes: [Protocity_StorageKey]  = []
         <% unique_keys.each do |key| %>
           indexes.append(Keys.make("<%=klass%>", "<%=key.name%>", <%=type_label(key) %>: self.<%=camel(key.name)%>))
         <% end %>
@@ -246,7 +246,7 @@ request.proto_file.select{|f| desired.include?(f.name) }.each do |file|
             indexes.append(Keys.make("<%=klass%>", "<%=key.name%>"
             <% subfields.each do |f| %>
         $trim$ ,
-        $trim$ Jane_Key.with { $0.<%=type_label(f)%> = self.<%=camel(f.name)%> }
+        $trim$ Protocity_Key.with { $0.<%=type_label(f)%> = self.<%=camel(f.name)%> }
             <% end %>
             ))
         <% end %>

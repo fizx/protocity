@@ -1,7 +1,7 @@
 import XCTest
 
-import JaneTests
+import ProtocityTests
 
 var tests = [XCTestCaseEntry]()
-tests += JaneTests.allTests()
+tests += ProtocityTests.allTests()
 XCTMain(tests)

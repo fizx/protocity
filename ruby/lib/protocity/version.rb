@@ -1,3 +1,3 @@
-module Jane
+module Protocity
   VERSION = "0.1.0"
 end

@@ -19,7 +19,7 @@ fileprivate struct _GeneratedWithProtocGenSwiftVersion: SwiftProtobuf.ProtobufAP
   typealias Version = _2
 }
 
-struct Jane_Index {
+struct Protocity_Index {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
@@ -35,7 +35,7 @@ struct Jane_Index {
   init() {}
 }
 
-struct Jane_Key {
+struct Protocity_Key {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
@@ -95,7 +95,7 @@ struct Jane_Key {
     case bytes(Data)
 
   #if !swift(>=4.1)
-    static func ==(lhs: Jane_Key.OneOf_Value, rhs: Jane_Key.OneOf_Value) -> Bool {
+    static func ==(lhs: Protocity_Key.OneOf_Value, rhs: Protocity_Key.OneOf_Value) -> Bool {
       switch (lhs, rhs) {
       case (.string(let l), .string(let r)): return l == r
       case (.integer(let l), .integer(let r)): return l == r
@@ -113,7 +113,7 @@ struct Jane_Key {
   fileprivate var _storage = _StorageClass.defaultInstance
 }
 
-struct Jane_StorageKey {
+struct Protocity_StorageKey {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
   // methods supported on all messages.
@@ -128,13 +128,13 @@ struct Jane_StorageKey {
     set {_uniqueStorage()._subspace = newValue}
   }
 
-  var key: [Jane_Key] {
+  var key: [Protocity_Key] {
     get {return _storage._key}
     set {_uniqueStorage()._key = newValue}
   }
 
-  var uniqueBy: Jane_Key {
-    get {return _storage._uniqueBy ?? Jane_Key()}
+  var uniqueBy: Protocity_Key {
+    get {return _storage._uniqueBy ?? Protocity_Key()}
     set {_uniqueStorage()._uniqueBy = newValue}
   }
   /// Returns true if `uniqueBy` has been explicitly set.
@@ -151,9 +151,9 @@ struct Jane_StorageKey {
 
 // MARK: - Code below here is support for the SwiftProtobuf runtime.
 
-fileprivate let _protobuf_package = "jane"
+fileprivate let _protobuf_package = "protocity"
 
-extension Jane_Index: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+extension Protocity_Index: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   static let protoMessageName: String = _protobuf_package + ".Index"
   static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
     10: .same(proto: "namespace"),
@@ -185,7 +185,7 @@ extension Jane_Index: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementatio
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  static func ==(lhs: Jane_Index, rhs: Jane_Index) -> Bool {
+  static func ==(lhs: Protocity_Index, rhs: Protocity_Index) -> Bool {
     if lhs.namespace != rhs.namespace {return false}
     if lhs.subspace != rhs.subspace {return false}
     if lhs.unique != rhs.unique {return false}
@@ -194,7 +194,7 @@ extension Jane_Index: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementatio
   }
 }
 
-extension Jane_Key: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+extension Protocity_Key: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   static let protoMessageName: String = _protobuf_package + ".Key"
   static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
     1: .same(proto: "string"),
@@ -205,7 +205,7 @@ extension Jane_Key: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationB
   ]
 
   fileprivate class _StorageClass {
-    var _value: Jane_Key.OneOf_Value?
+    var _value: Protocity_Key.OneOf_Value?
 
     static let defaultInstance = _StorageClass()
 
@@ -281,7 +281,7 @@ extension Jane_Key: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationB
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  static func ==(lhs: Jane_Key, rhs: Jane_Key) -> Bool {
+  static func ==(lhs: Protocity_Key, rhs: Protocity_Key) -> Bool {
     if lhs._storage !== rhs._storage {
       let storagesAreEqual: Bool = withExtendedLifetime((lhs._storage, rhs._storage)) { (_args: (_StorageClass, _StorageClass)) in
         let _storage = _args.0
@@ -296,7 +296,7 @@ extension Jane_Key: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationB
   }
 }
 
-extension Jane_StorageKey: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+extension Protocity_StorageKey: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   static let protoMessageName: String = _protobuf_package + ".StorageKey"
   static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
     10: .same(proto: "namespace"),
@@ -308,8 +308,8 @@ extension Jane_StorageKey: SwiftProtobuf.Message, SwiftProtobuf._MessageImplemen
   fileprivate class _StorageClass {
     var _namespace: String = String()
     var _subspace: String = String()
-    var _key: [Jane_Key] = []
-    var _uniqueBy: Jane_Key? = nil
+    var _key: [Protocity_Key] = []
+    var _uniqueBy: Protocity_Key? = nil
 
     static let defaultInstance = _StorageClass()
 
@@ -363,7 +363,7 @@ extension Jane_StorageKey: SwiftProtobuf.Message, SwiftProtobuf._MessageImplemen
     try unknownFields.traverse(visitor: &visitor)
   }
 
-  static func ==(lhs: Jane_StorageKey, rhs: Jane_StorageKey) -> Bool {
+  static func ==(lhs: Protocity_StorageKey, rhs: Protocity_StorageKey) -> Bool {
     if lhs._storage !== rhs._storage {
       let storagesAreEqual: Bool = withExtendedLifetime((lhs._storage, rhs._storage)) { (_args: (_StorageClass, _StorageClass)) in
         let _storage = _args.0

@@ -1,36 +1,36 @@
 syntax = "proto3";
 
-import "jane.proto";
+import "protocity.proto";
 import "google/protobuf/timestamp.proto";
 
 package example;
 
 message User {
-  string id = 1 [(jane.index).type=PRIMARY];
-  string login = 2 [(jane.index).type=UNIQUE];
+  string id = 1 [(protocity.index).type=PRIMARY];
+  string login = 2 [(protocity.index).type=UNIQUE];
   string name = 3;
 
-  Account account = 4 [(jane.index).type=FOREIGN];
-  repeated Photo photos = 5 [(jane.index).type=FOREIGN];
+  Account account = 4 [(protocity.index).type=FOREIGN];
+  repeated Photo photos = 5 [(protocity.index).type=FOREIGN];
 }
 
 message Account {
-  string id = 1 [(jane.index).type=PRIMARY];
+  string id = 1 [(protocity.index).type=PRIMARY];
   string encrypted_password = 2;
   string salt = 3;
 }
 
 message Message {
-  option (jane.composite_index) = {type: SIMPLE, fields: [2, 4], name: "sender_time"};
-  option (jane.composite_index) = {type: SIMPLE, fields: [3, 4], name: "recipient_time"};
-  string id = 1 [(jane.index).type=PRIMARY];
+  option (protocity.composite_index) = {type: SIMPLE, fields: [2, 4], name: "sender_time"};
+  option (protocity.composite_index) = {type: SIMPLE, fields: [3, 4], name: "recipient_time"};
+  string id = 1 [(protocity.index).type=PRIMARY];
   string from_user_id = 2;
   string to_user_id = 3;
-  google.protobuf.Timestamp sent_at = 4 [(jane.timestamp)=CREATION];
+  google.protobuf.Timestamp sent_at = 4 [(protocity.timestamp)=CREATION];
 }
 
 message Photo {
-  string id = 1 [(jane.index).type=PRIMARY];
+  string id = 1 [(protocity.index).type=PRIMARY];
   bytes content = 2;
 }
 

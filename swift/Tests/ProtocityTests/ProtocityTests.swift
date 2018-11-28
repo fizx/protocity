@@ -3,9 +3,9 @@ import Swinject
 import SwinjectAutoregistration
 import Promises
 import SwiftProtobuf
-@testable import Jane
+@testable import Protocity
 
-final class JaneTests: XCTestCase {
+final class ProtocityTests: XCTestCase {
     var c: Container = Container()
     
     override func setUp() {

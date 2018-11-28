@@ -1,17 +1,17 @@
 
 lib = File.expand_path("../lib", __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require "jane/version"
+require "protocity/version"
 
 Gem::Specification.new do |spec|
-  spec.name          = "jane"
-  spec.version       = Jane::VERSION
+  spec.name          = "protocity"
+  spec.version       = Protocity::VERSION
   spec.authors       = ["Kyle Maxwell"]
   spec.email         = ["kyle@kylemaxwell.com"]
 
-  spec.summary       = %q{Code generator for the Jane data store}
+  spec.summary       = %q{Code generator for the Protocity data store}
   spec.description   = %q{}
-  spec.homepage      = "https://github.com/fizx/jane"
+  spec.homepage      = "https://github.com/fizx/protocity"
 
   # Prevent pushing this gem to RubyGems.org. To allow pushes either set the 'allowed_push_host'
   # to allow pushing to a single host or delete this section to allow pushing to any host.
@@ -35,8 +35,8 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rake", "~> 10.0"
   spec.post_install_message = <<-STR
 
-  Jane embeds a protoc compiler and a protoc-swift compiler.  If you are using 
-  System Gems (i.e. you `sudo gem install`), you'll have to run jane with sudo
+  Protocity embeds a protoc compiler and a protoc-swift compiler.  If you are using 
+  System Gems (i.e. you `sudo gem install`), you'll have to run protocity with sudo
   for the first time in order to fix permissions on these compilers.
 
 STR

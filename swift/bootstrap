@@ -1,7 +1,9 @@
 #!/bin/bash
 cd `dirname $0`
-../../ruby/exe/jane Sources/Jane example/*.proto -I example
+../ruby/exe/protocity Sources/Protocity example/*.proto -I example
 
-ruby="../../ruby"
+ruby="../ruby"
 PROTOC=$ruby/lib/vendor/protoc-osx/bin/protoc
-$PROTOC --swift_out=Sources/Jane -I $ruby/lib/vendor/protoc-linux/include -I $ruby/proto $ruby/proto/keys.proto
+$PROTOC --swift_out=Sources/Protocity -I $ruby/lib/vendor/protoc-linux/include -I $ruby/proto $ruby/proto/keys.proto
+
+swift package generate-xcodeproj

@@ -8,10 +8,10 @@ files = paths.map do |path|
 end.flatten
 
 if files.all? {|f| File.stat(f).mode & 0755 == 0755 }
-  exec([File.join(File.dirname(__FILE__), "..", "lib", "jane.sh"), "jane"], *ARGV)
+  exec([File.join(File.dirname(__FILE__), "..", "lib", "protocity.sh"), "protocity"], *ARGV)
 else
   STDERR.puts "Attempting to fix permissions on the protoc compilers we ship"
-  STDERR.puts "with jane. If you sudo install gems, you will need to run this"
+  STDERR.puts "with protocity. If you sudo install gems, you will need to run this"
   STDERR.puts "command once with sudo to fix this."
 
   require "fileutils"

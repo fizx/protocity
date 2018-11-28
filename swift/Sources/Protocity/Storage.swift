@@ -4,43 +4,43 @@ import Promises
 
 protocol StorageMappable {
     func toValue() -> Data
-    func primaryIndex() -> Jane_StorageKey
-    func secondaryIndexes() -> [Jane_StorageKey]
+    func primaryIndex() -> Protocity_StorageKey
+    func secondaryIndexes() -> [Protocity_StorageKey]
 }
 
 protocol RawStorage {
-    func get(key: Jane_StorageKey) -> Promise<Data?>
-    func get(keys: [Jane_StorageKey]) -> Promise<[Data?]>
-    func range(from: Jane_StorageKey, to: Jane_StorageKey, limit: Int) -> Promise<[Data]>
-    func put(pairs: [(Jane_StorageKey, Data)]) -> Promise<Void>
-    func put(key: Jane_StorageKey, value: Data) -> Promise<Void>
-    func remove(keys: [Jane_StorageKey]) -> Promise<Void>
+    func get(key: Protocity_StorageKey) -> Promise<Data?>
+    func get(keys: [Protocity_StorageKey]) -> Promise<[Data?]>
+    func range(from: Protocity_StorageKey, to: Protocity_StorageKey, limit: Int) -> Promise<[Data]>
+    func put(pairs: [(Protocity_StorageKey, Data)]) -> Promise<Void>
+    func put(key: Protocity_StorageKey, value: Data) -> Promise<Void>
+    func remove(keys: [Protocity_StorageKey]) -> Promise<Void>
     func transactionally(transaction: @escaping (RawStorage) throws -> Promise<Void>) -> Promise<Void>
 }
 
 extension RawStorage {
-    func put(key: Jane_StorageKey, value: Data) -> Promise<Void> {
+    func put(key: Protocity_StorageKey, value: Data) -> Promise<Void> {
         return self.put(pairs: [(key, value)])
     }
     
-    func get(key: Jane_StorageKey) -> Promise<Data?> {
+    func get(key: Protocity_StorageKey) -> Promise<Data?> {
         return self.get(keys: [key]).then { $0[0] }
     }
 }
 
 struct Keys {
-    static func make(_ namespace: String, _ subspace: String, string: String) -> Jane_StorageKey {
-        let key = Jane_Key.with { $0.string = string }
+    static func make(_ namespace: String, _ subspace: String, string: String) -> Protocity_StorageKey {
+        let key = Protocity_Key.with { $0.string = string }
         return make(namespace, subspace, key)
     }
     
-    static func make(_ namespace: String, _ subspace: String, bytes: Data) -> Jane_StorageKey {
-        let key = Jane_Key.with { $0.bytes = bytes }
+    static func make(_ namespace: String, _ subspace: String, bytes: Data) -> Protocity_StorageKey {
+        let key = Protocity_Key.with { $0.bytes = bytes }
         return make(namespace, subspace, key)
     }
     
-    static func make(_ namespace: String, _ subspace: String, _ key: Jane_Key...) -> Jane_StorageKey {
-        return Jane_StorageKey.with{
+    static func make(_ namespace: String, _ subspace: String, _ key: Protocity_Key...) -> Protocity_StorageKey {
+        return Protocity_StorageKey.with{
             $0.namespace = namespace
             $0.subspace = subspace;
             $0.key = key
@@ -49,8 +49,8 @@ struct Keys {
 }
 
 
-extension Jane_StorageKey: Comparable {
-    static func < (lhs: Jane_StorageKey, rhs: Jane_StorageKey) -> Bool {
+extension Protocity_StorageKey: Comparable {
+    static func < (lhs: Protocity_StorageKey, rhs: Protocity_StorageKey) -> Bool {
         let a = [UInt8](try! lhs.serializedData())
         let b = [UInt8](try! rhs.serializedData())
         for (l, r) in zip(a, b) {
@@ -66,16 +66,16 @@ extension Jane_StorageKey: Comparable {
 
 class MemoryStorage: RawStorage {
     let transactions = DispatchQueue(label: "memory_storage_transactions")
-    var raw = SortedDictionary<Jane_StorageKey, Data>()
+    var raw = SortedDictionary<Protocity_StorageKey, Data>()
     var version = 0
     var refCount: [Int: Int] = [:]
-    var changedKeys: [Int: Set<Jane_StorageKey>] = [:]
+    var changedKeys: [Int: Set<Protocity_StorageKey>] = [:]
     
-    func get(keys: [Jane_StorageKey]) -> Promise<[Data?]> {
+    func get(keys: [Protocity_StorageKey]) -> Promise<[Data?]> {
         return all(keys.map{ Promise(raw.findValue(for: $0)) })
     }
     
-    func range(from: Jane_StorageKey, to: Jane_StorageKey, limit: Int) -> Promise<[Data]> {
+    func range(from: Protocity_StorageKey, to: Protocity_StorageKey, limit: Int) -> Promise<[Data]> {
         var answers: [Data] = []
         for key in raw.keys {
             if key < from || key >= to || answers.count == limit {
@@ -88,13 +88,13 @@ class MemoryStorage: RawStorage {
         return Promise(answers)
     }
     
-    func put(pairs: [(Jane_StorageKey, Data)]) -> Promise<Void> {
+    func put(pairs: [(Protocity_StorageKey, Data)]) -> Promise<Void> {
         return self.transactionally { transaction in
             return transaction.put(pairs: pairs)
         }
     }
     
-    func remove(keys: [Jane_StorageKey]) -> Promise<Void> {
+    func remove(keys: [Protocity_StorageKey]) -> Promise<Void> {
         return self.transactionally { transaction in
             transaction.remove(keys: keys)
         }
@@ -104,7 +104,7 @@ class MemoryStorage: RawStorage {
         let p = Promise<TransactionStore>.pending()
         self.transactions.async {
             self.refCount[self.version] = (self.refCount[self.version] ?? 0) + 1
-            var snapshot = SortedDictionary<Jane_StorageKey, Data>()
+            var snapshot = SortedDictionary<Protocity_StorageKey, Data>()
             for (k, v) in self.raw {
                 snapshot[k] = v
             }
@@ -127,22 +127,22 @@ class MemoryStorage: RawStorage {
 }
 
 protocol Op {
-    var key: Jane_StorageKey { get set }
+    var key: Protocity_StorageKey { get set }
 }
 
 class TransactionStore: RawStorage {
     let inner: MemoryStorage
-    var snapshot: SortedDictionary<Jane_StorageKey, Data>
+    var snapshot: SortedDictionary<Protocity_StorageKey, Data>
     let readVersion: Int
     var writes: [Op] = []
     
     struct UpdateOp: Op {
-        var key: Jane_StorageKey
+        var key: Protocity_StorageKey
         var value: Data
     }
 
     struct RemoveOp: Op {
-        var key: Jane_StorageKey
+        var key: Protocity_StorageKey
     }
     
     func rollback() -> Promise<Void> {
@@ -155,7 +155,7 @@ class TransactionStore: RawStorage {
     }
     
     private func checkForConflicts() throws {
-        var conflictableKeys: Set<Jane_StorageKey> = []
+        var conflictableKeys: Set<Protocity_StorageKey> = []
         
         for i in (readVersion + 1)..<(inner.version + 1) {
             for key in inner.changedKeys[i] ?? [] {
@@ -163,7 +163,7 @@ class TransactionStore: RawStorage {
             }
         }
         
-        var newlyChangedKeys: Set<Jane_StorageKey> = []
+        var newlyChangedKeys: Set<Protocity_StorageKey> = []
         for op in writes {
             newlyChangedKeys.insert(op.key)
         }
@@ -214,17 +214,17 @@ class TransactionStore: RawStorage {
         return p
     }
 
-    init(inner: MemoryStorage, snapshot: SortedDictionary<Jane_StorageKey, Data>, readVersion: Int) {
+    init(inner: MemoryStorage, snapshot: SortedDictionary<Protocity_StorageKey, Data>, readVersion: Int) {
         self.inner = inner
         self.snapshot = snapshot
         self.readVersion = readVersion
     }
     
-    func get(keys: [Jane_StorageKey]) -> Promise<[Data?]>{
+    func get(keys: [Protocity_StorageKey]) -> Promise<[Data?]>{
         return Promise(keys.map { snapshot.findValue(for: $0) })
     }
     
-    func range(from: Jane_StorageKey, to: Jane_StorageKey, limit: Int) -> Promise<[Data]> {
+    func range(from: Protocity_StorageKey, to: Protocity_StorageKey, limit: Int) -> Promise<[Data]> {
         var answers: [Data] = []
         for key in snapshot.keys {
             if key < from || key >= to || answers.count == limit {
@@ -237,7 +237,7 @@ class TransactionStore: RawStorage {
         return Promise(answers)
     }
     
-    func put(pairs: [(Jane_StorageKey, Data)]) -> Promise<Void> {
+    func put(pairs: [(Protocity_StorageKey, Data)]) -> Promise<Void> {
         for pair in pairs {
             writes.append(UpdateOp(key: pair.0, value: pair.1))
             snapshot.insert(value: pair.1, for: pair.0)
@@ -245,7 +245,7 @@ class TransactionStore: RawStorage {
         return Promise(())
     }
     
-    func remove(keys: [Jane_StorageKey]) -> Promise<Void> {
+    func remove(keys: [Protocity_StorageKey]) -> Promise<Void> {
         for key in keys {
             writes.append(RemoveOp(key: key))
             snapshot.removeValue(for: key)

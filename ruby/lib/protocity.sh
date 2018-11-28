@@ -16,5 +16,5 @@ cd $original
 echo $PROTOC --swift_out=$1 -I `dirname $0`/../lib/vendor/protoc-linux/include -I `dirname $0`/../proto ${@:2}
 $PROTOC --swift_out=$1 -I `dirname $0`/../lib/vendor/protoc-linux/include -I `dirname $0`/../proto ${@:2}
 $PROTOC --swiftgrpc_out=$1 -I `dirname $0`/../lib/vendor/protoc-linux/include -I `dirname $0`/../proto ${@:2}
-$PROTOC --jane_out=$1 -I `dirname $0`/../lib/vendor/protoc-linux/include -I `dirname $0`/../proto ${@:2}
-swiftformat $1/jane.meta.swift 1>/dev/null 2>/dev/null
+$PROTOC --protocity_out=$1 -I `dirname $0`/../lib/vendor/protoc-linux/include -I `dirname $0`/../proto ${@:2}
+swiftformat $1/protocity.meta.swift 1>/dev/null 2>/dev/null

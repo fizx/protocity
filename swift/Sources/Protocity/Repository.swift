@@ -12,26 +12,26 @@ class Repository<V: StorageMappable> {
     func constructor(data: Data) -> V? {
         return nil
     }
-    func _indirectFind(_ key: Jane_StorageKey) -> Promise<V?> {
+    func _indirectFind(_ key: Protocity_StorageKey) -> Promise<V?> {
         return _indirectFind([key]).then { $0[0] }
     }
     
-    func _indirectFind(_ keys: [Jane_StorageKey]) -> Promise<[V?]> {
+    func _indirectFind(_ keys: [Protocity_StorageKey]) -> Promise<[V?]> {
         return storage.get(keys: keys).then { values in
-            let newKeys = values.map { value -> Jane_StorageKey? in
+            let newKeys = values.map { value -> Protocity_StorageKey? in
                 if value == nil {
                     return nil
                 } else {
-                    return try! Jane_StorageKey(serializedData: value!)
+                    return try! Protocity_StorageKey(serializedData: value!)
                 }
             }
             return self._find(newKeys)
         }
     }
     
-    func _indirectFind(_ range: Range<Jane_StorageKey>, limit: Int = Int.max) -> Promise<[V]> {
+    func _indirectFind(_ range: Range<Protocity_StorageKey>, limit: Int = Int.max) -> Promise<[V]> {
         return storage.range(from: range.lowerBound, to: range.upperBound, limit: limit).then { values in
-            return values.map { try! Jane_StorageKey(serializedData: $0) }
+            return values.map { try! Protocity_StorageKey(serializedData: $0) }
         }.then { keys in
             return self._find(keys)
         }.then { values in
@@ -40,7 +40,7 @@ class Repository<V: StorageMappable> {
     }
     
     
-    func _find(_ key: Jane_StorageKey) -> Promise<V?> {
+    func _find(_ key: Protocity_StorageKey) -> Promise<V?> {
         return storage.get(key: key).then { value in
             value.flatMap{
                 self.constructor(data: $0)
@@ -48,7 +48,7 @@ class Repository<V: StorageMappable> {
         }
     }
     
-    func _find(_ keys: [Jane_StorageKey?]) -> Promise<[V?]> {
+    func _find(_ keys: [Protocity_StorageKey?]) -> Promise<[V?]> {
         return _find(keys.compactMap{$0}).then { answers -> [V?] in
             var tmp = answers
             var padded: [V?] = []
@@ -63,7 +63,7 @@ class Repository<V: StorageMappable> {
         }
     }
     
-    func _find(_ keys: [Jane_StorageKey]) -> Promise<[V?]> {
+    func _find(_ keys: [Protocity_StorageKey]) -> Promise<[V?]> {
         return storage.get(keys: keys).then { values in
             return values.map {
                 $0.flatMap {
@@ -73,7 +73,7 @@ class Repository<V: StorageMappable> {
         }
     }
     
-    func _find(_ range: Range<Jane_StorageKey>, limit: Int = Int.max) -> Promise<[V]> {
+    func _find(_ range: Range<Protocity_StorageKey>, limit: Int = Int.max) -> Promise<[V]> {
         return storage.range(from: range.lowerBound, to: range.upperBound, limit: limit).then { values in
             return values.map { self.constructor(data: $0)! }
         }
@@ -91,7 +91,7 @@ class Repository<V: StorageMappable> {
                 for index in obj.secondaryIndexes() {
                     promises += [t.get(key: index).then { (maybeData: Data?) -> Promise<Void> in
                         if let data = maybeData {
-                            let existingKey = try! Jane_StorageKey(serializedData: data)
+                            let existingKey = try! Protocity_StorageKey(serializedData: data)
                             if existingKey == key {
                                 return t.put(key: index, value: binaryKey)
                             } else {

@@ -1,6 +1,6 @@
 import Foundation
-import Jane
 import Promises
+import Protocity
 import SwiftProtobuf
 import Swinject
 import SwinjectAutoregistration
@@ -59,12 +59,12 @@ extension Example_User: StorageMappable {
         return try! serializedData()
     }
 
-    func primaryIndex() -> Jane_StorageKey {
+    func primaryIndex() -> Protocity_StorageKey {
         return Keys.make("Example_User", "id", string: id)
     }
 
-    func secondaryIndexes() -> [Jane_StorageKey] {
-        var indexes: [Jane_StorageKey] = []
+    func secondaryIndexes() -> [Protocity_StorageKey] {
+        var indexes: [Protocity_StorageKey] = []
 
         indexes.append(Keys.make("Example_User", "login", string: login))
 
@@ -113,12 +113,12 @@ extension Example_Account: StorageMappable {
         return try! serializedData()
     }
 
-    func primaryIndex() -> Jane_StorageKey {
+    func primaryIndex() -> Protocity_StorageKey {
         return Keys.make("Example_Account", "id", string: id)
     }
 
-    func secondaryIndexes() -> [Jane_StorageKey] {
-        var indexes: [Jane_StorageKey] = []
+    func secondaryIndexes() -> [Protocity_StorageKey] {
+        var indexes: [Protocity_StorageKey] = []
 
         return indexes
     }
@@ -152,27 +152,27 @@ class Example_MessageRepository: Repository<Example_Message> {
 
     // full exact match
     func findBySenderTime(_ from_user_id: String, _ sent_at: Google_Protobuf_Timestamp) -> Promise<Example_Message?> {
-        return _indirectFind(Keys.make("Example_Message", "sender_time", Jane_Key.with { $0.string = from_user_id }, Jane_Key.with { $0.timestamp = sent_at }))
+        return _indirectFind(Keys.make("Example_Message", "sender_time", Protocity_Key.with { $0.string = from_user_id }, Protocity_Key.with { $0.timestamp = sent_at }))
     }
 
     // full exact match
     func findByRecipientTime(_ to_user_id: String, _ sent_at: Google_Protobuf_Timestamp) -> Promise<Example_Message?> {
-        return _indirectFind(Keys.make("Example_Message", "recipient_time", Jane_Key.with { $0.string = to_user_id }, Jane_Key.with { $0.timestamp = sent_at }))
+        return _indirectFind(Keys.make("Example_Message", "recipient_time", Protocity_Key.with { $0.string = to_user_id }, Protocity_Key.with { $0.timestamp = sent_at }))
     }
 
     func findBySenderTime(fromUserID: String, limit: Int = Int.max) -> Promise<[Example_Message]> {
-        let lowerBound = Keys.make("Example_Message", "sender_time", Jane_Key.with { $0.string = fromUserID })
-        let upperBound = Keys.make("Example_Message", "sender_time", Jane_Key.with { $0.string = fromUserID }
+        let lowerBound = Keys.make("Example_Message", "sender_time", Protocity_Key.with { $0.string = fromUserID })
+        let upperBound = Keys.make("Example_Message", "sender_time", Protocity_Key.with { $0.string = fromUserID }
                                    ,
-                                   Jane_Key.with { $0.bytes = Data(repeating: 255, count: 16) })
+                                   Protocity_Key.with { $0.bytes = Data(repeating: 255, count: 16) })
         return _indirectFind(lowerBound ..< upperBound, limit: limit)
     }
 
     func findByRecipientTime(toUserID: String, limit: Int = Int.max) -> Promise<[Example_Message]> {
-        let lowerBound = Keys.make("Example_Message", "recipient_time", Jane_Key.with { $0.string = toUserID })
-        let upperBound = Keys.make("Example_Message", "recipient_time", Jane_Key.with { $0.string = toUserID }
+        let lowerBound = Keys.make("Example_Message", "recipient_time", Protocity_Key.with { $0.string = toUserID })
+        let upperBound = Keys.make("Example_Message", "recipient_time", Protocity_Key.with { $0.string = toUserID }
                                    ,
-                                   Jane_Key.with { $0.bytes = Data(repeating: 255, count: 16) })
+                                   Protocity_Key.with { $0.bytes = Data(repeating: 255, count: 16) })
         return _indirectFind(lowerBound ..< upperBound, limit: limit)
     }
 }
@@ -191,16 +191,16 @@ extension Example_Message: StorageMappable {
         return try! serializedData()
     }
 
-    func primaryIndex() -> Jane_StorageKey {
+    func primaryIndex() -> Protocity_StorageKey {
         return Keys.make("Example_Message", "id", string: id)
     }
 
-    func secondaryIndexes() -> [Jane_StorageKey] {
-        var indexes: [Jane_StorageKey] = []
+    func secondaryIndexes() -> [Protocity_StorageKey] {
+        var indexes: [Protocity_StorageKey] = []
 
-        indexes.append(Keys.make("Example_Message", "sender_time", Jane_Key.with { $0.string = self.fromUserID }, Jane_Key.with { $0.timestamp = self.sentAt }))
+        indexes.append(Keys.make("Example_Message", "sender_time", Protocity_Key.with { $0.string = self.fromUserID }, Protocity_Key.with { $0.timestamp = self.sentAt }))
 
-        indexes.append(Keys.make("Example_Message", "recipient_time", Jane_Key.with { $0.string = self.toUserID }, Jane_Key.with { $0.timestamp = self.sentAt }))
+        indexes.append(Keys.make("Example_Message", "recipient_time", Protocity_Key.with { $0.string = self.toUserID }, Protocity_Key.with { $0.timestamp = self.sentAt }))
 
         return indexes
     }
@@ -247,12 +247,12 @@ extension Example_Photo: StorageMappable {
         return try! serializedData()
     }
 
-    func primaryIndex() -> Jane_StorageKey {
+    func primaryIndex() -> Protocity_StorageKey {
         return Keys.make("Example_Photo", "id", string: id)
     }
 
-    func secondaryIndexes() -> [Jane_StorageKey] {
-        var indexes: [Jane_StorageKey] = []
+    func secondaryIndexes() -> [Protocity_StorageKey] {
+        var indexes: [Protocity_StorageKey] = []
 
         return indexes
     }

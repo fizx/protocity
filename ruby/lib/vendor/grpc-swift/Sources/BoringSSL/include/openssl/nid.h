@@ -2237,9 +2237,9 @@ extern "C" {
 #define NID_organizationalStatus 491
 #define OBJ_organizationalStatus 0L, 9L, 2342L, 19200300L, 100L, 1L, 45L
 
-#define LN_janetMailbox "janetMailbox"
-#define NID_janetMailbox 492
-#define OBJ_janetMailbox 0L, 9L, 2342L, 19200300L, 100L, 1L, 46L
+#define LN_protocitytMailbox "protocitytMailbox"
+#define NID_protocitytMailbox 492
+#define OBJ_protocitytMailbox 0L, 9L, 2342L, 19200300L, 100L, 1L, 46L
 
 #define LN_mailPreferenceOption "mailPreferenceOption"
 #define NID_mailPreferenceOption 493

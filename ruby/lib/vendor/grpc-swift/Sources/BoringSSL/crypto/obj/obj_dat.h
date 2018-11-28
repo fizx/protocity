@@ -976,7 +976,7 @@ static const uint8_t kObjectData[] = {
     0x09, 0x92, 0x26, 0x89, 0x93, 0xf2, 0x2c, 0x64, 0x01, 0x2b,
     /* NID_organizationalStatus */
     0x09, 0x92, 0x26, 0x89, 0x93, 0xf2, 0x2c, 0x64, 0x01, 0x2d,
-    /* NID_janetMailbox */
+    /* NID_protocitytMailbox */
     0x09, 0x92, 0x26, 0x89, 0x93, 0xf2, 0x2c, 0x64, 0x01, 0x2e,
     /* NID_mailPreferenceOption */
     0x09, 0x92, 0x26, 0x89, 0x93, 0xf2, 0x2c, 0x64, 0x01, 0x2f,
@@ -2606,7 +2606,7 @@ static const ASN1_OBJECT kObjects[NUM_NID] = {
      &kObjectData[3708], 0},
     {"organizationalStatus", "organizationalStatus", NID_organizationalStatus,
      10, &kObjectData[3718], 0},
-    {"janetMailbox", "janetMailbox", NID_janetMailbox, 10, &kObjectData[3728],
+    {"protocitytMailbox", "protocitytMailbox", NID_protocitytMailbox, 10, &kObjectData[3728],
      0},
     {"mailPreferenceOption", "mailPreferenceOption", NID_mailPreferenceOption,
      10, &kObjectData[3738], 0},
@@ -4068,7 +4068,7 @@ static const unsigned kNIDsInShortNameOrder[] = {
     296 /* ipsecUser */,
     86 /* issuerAltName */,
     770 /* issuingDistributionPoint */,
-    492 /* janetMailbox */,
+    492 /* protocitytMailbox */,
     150 /* keyBag */,
     83 /* keyUsage */,
     477 /* lastModifiedBy */,
@@ -5002,7 +5002,7 @@ static const unsigned kNIDsInLongNameOrder[] = {
     181 /* iso */,
     623 /* issuer capabilities */,
     645 /* itu-t */,
-    492 /* janetMailbox */,
+    492 /* protocitytMailbox */,
     646 /* joint-iso-itu-t */,
     150 /* keyBag */,
     773 /* kisa */,
@@ -6111,7 +6111,7 @@ static const unsigned kNIDsInOIDOrder[] = {
     489 /* 0.9.2342.19200300.100.1.42 (OBJ_pagerTelephoneNumber) */,
     490 /* 0.9.2342.19200300.100.1.43 (OBJ_friendlyCountryName) */,
     491 /* 0.9.2342.19200300.100.1.45 (OBJ_organizationalStatus) */,
-    492 /* 0.9.2342.19200300.100.1.46 (OBJ_janetMailbox) */,
+    492 /* 0.9.2342.19200300.100.1.46 (OBJ_protocitytMailbox) */,
     493 /* 0.9.2342.19200300.100.1.47 (OBJ_mailPreferenceOption) */,
     494 /* 0.9.2342.19200300.100.1.48 (OBJ_buildingName) */,
     495 /* 0.9.2342.19200300.100.1.49 (OBJ_dSAQuality) */,
