@@ -1,0 +1,6 @@
+#!/bin/bash
+set -ex
+cd `dirname $0`
+
+git tag 0.1.`date +%s`
+git push --tags
