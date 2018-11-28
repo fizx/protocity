@@ -190,6 +190,31 @@ request.proto_file.select{|f| desired.include?(f.name) }.each do |file|
           ))
         }
       <% end %>
+      
+      <% composite_keys.each_with_index do |key, i| 
+        (key.fields.size - 1).times do |j|
+          subfields = key.fields.first(j+2).map{|n| by_number[n] }.dup
+          last = subfields.pop
+          args = subfields.map{|f| "#{camel(f.name)}: #{type(f)}"}.join(", ")
+          %>
+          func findBy<%=caps(key.name)%>(<%=args%>, limit: Int = Int.max) -> Promise<[<%=klass%>]> {
+            let lowerBound = Keys.make("<%=klass%>", "<%=key.name%>"
+            <% subfields.each do |f| %>
+        $trim$ ,
+        $trim$ Jane_Key.with { $0.<%=type_label(f)%> = <%=camel(f.name)%> }
+            <% end %>
+            )
+            let upperBound = Keys.make("<%=klass%>", "<%=key.name%>"
+            <% subfields.each do |f| %>
+        $trim$ ,
+        $trim$ Jane_Key.with { $0.<%=type_label(f)%> = <%=camel(f.name)%> }
+            <% end %>,
+            Jane_Key.with { $0.bytes = Data(repeating: 255, count: 16) }
+            )
+            return self._indirectFind(lowerBound..<upperBound, limit: limit)
+          }
+        <% end %>
+      <% end %>
     }
     
     extension <%=klass%>: StorageMappable {

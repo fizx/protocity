@@ -159,6 +159,22 @@ class Example_MessageRepository: Repository<Example_Message> {
     func findByRecipientTime(_ to_user_id: String, _ sent_at: Google_Protobuf_Timestamp) -> Promise<Example_Message?> {
         return _indirectFind(Keys.make("Example_Message", "recipient_time", Jane_Key.with { $0.string = to_user_id }, Jane_Key.with { $0.timestamp = sent_at }))
     }
+
+    func findBySenderTime(fromUserID: String, limit: Int = Int.max) -> Promise<[Example_Message]> {
+        let lowerBound = Keys.make("Example_Message", "sender_time", Jane_Key.with { $0.string = fromUserID })
+        let upperBound = Keys.make("Example_Message", "sender_time", Jane_Key.with { $0.string = fromUserID }
+                                   ,
+                                   Jane_Key.with { $0.bytes = Data(repeating: 255, count: 16) })
+        return _indirectFind(lowerBound ..< upperBound, limit: limit)
+    }
+
+    func findByRecipientTime(toUserID: String, limit: Int = Int.max) -> Promise<[Example_Message]> {
+        let lowerBound = Keys.make("Example_Message", "recipient_time", Jane_Key.with { $0.string = toUserID })
+        let upperBound = Keys.make("Example_Message", "recipient_time", Jane_Key.with { $0.string = toUserID }
+                                   ,
+                                   Jane_Key.with { $0.bytes = Data(repeating: 255, count: 16) })
+        return _indirectFind(lowerBound ..< upperBound, limit: limit)
+    }
 }
 
 extension Example_Message: StorageMappable {

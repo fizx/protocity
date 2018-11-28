@@ -70,4 +70,16 @@ final class JaneTests: XCTestCase {
         XCTAssertNotNil(saved)
         XCTAssertEqual(saved?.fromUserID, "bob")
     }
+    func testPartialCompositeKey() throws {
+        let repo = c.resolve(Example_Message.repository())!
+        let time = Google_Protobuf_Timestamp(date: Date())
+        let message = Example_Message.with {
+            $0.sentAt = time
+            $0.fromUserID = "bob"
+        }
+        try await(repo.save(message))
+        let saved = try await(repo.findBySenderTime(fromUserID: "bob"))
+        XCTAssertEqual(saved.count, 1)
+        XCTAssertEqual(saved[0].fromUserID, "bob")
+    }
 }
