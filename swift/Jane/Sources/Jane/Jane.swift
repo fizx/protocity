@@ -1,3 +1,1 @@
-struct Jane {
-    var text = "Hello, World!"
-}
+import Foundation

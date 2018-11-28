@@ -13,37 +13,84 @@ def prefix(file)
 end
 
 def type_label(field)
-  "string"
+  t = Google::Protobuf::FieldDescriptorProto::Type
+  case field.type
+  when t::TYPE_STRING; "string"
+  when t::TYPE_MESSAGE; 
+    if field.type_name == ".google.protobuf.Timestamp"
+      "timestamp"
+    else
+      "unknown"
+    end
+  else
+    throw field
+  end
 end
 
 def type(field)
-  "String"
+  t = Google::Protobuf::FieldDescriptorProto::Type
+  case field.type
+  when t::TYPE_STRING; "String"
+  when t::TYPE_MESSAGE; 
+    if field.type_name == ".google.protobuf.Timestamp"
+      "Google_Protobuf_Timestamp"
+    else
+      "unknown"
+    end
+  else
+    throw field
+  end
 end
 
 def caps(s)
-  s.capitalize
+  s.split("_").map(&:capitalize).join("")
+end
+
+def camel(s)
+  c = s.split("_").map(&:capitalize).map{|seg| seg == "Id" ? "ID" : seg }.join("")
+  c[0] = c[0].downcase
+  c
+end
+
+def postprocess(content)
+  content.gsub(/\s*\$trim\s*\$/m, '')
 end
 
 class Indexes < ::Protobuf::Enum
-  define :NONE, 0
+  define :NO_INDEX, 0
   define :PRIMARY, 1
   define :UNIQUE, 2
   define :FOREIGN, 3
+  define :SIMPLE, 4
 end
 
-class Index < ::Protobuf::Message
+class AutoTimestamp < ::Protobuf::Enum
+  define :NO_TIMESTAMP, 0
+  define :CREATION, 1
+  define :UPDATE, 2
+end
+
+class FieldIndex < ::Protobuf::Message
   required Indexes, :type, 1
-  repeated :int32, :keys, 2
 end
 
-Google::Protobuf::FieldOptions.optional Index, :index, 50001
+class MessageIndex < ::Protobuf::Message
+  required Indexes, :type, 1
+  repeated :int32, :fields, 2
+  required :string, :name, 3
+end
+
+Google::Protobuf::FieldOptions.optional FieldIndex, :index, 50003
+Google::Protobuf::FieldOptions.optional AutoTimestamp, :timestamp, 50002
+Google::Protobuf::MessageOptions.repeated MessageIndex, :composite_index, 50001
+
 bindings = {}
 
 request = Google::Protobuf::Compiler::CodeGeneratorRequest.decode(STDIN.read)
 template = ERB.new(DATA.read)
-content = template.result(binding)
+content = postprocess(template.result(binding))
 file = Google::Protobuf::Compiler::CodeGeneratorResponse::File.new
-file.name = "jane.pb.swift"
+file.name = "jane.meta.swift"
 file.content = content
 response = Google::Protobuf::Compiler::CodeGeneratorResponse.new
 response.file << file
@@ -55,76 +102,97 @@ import Jane
 import Swinject
 import SwinjectAutoregistration
 import Foundation
+import SwiftProtobuf
+
 <%
 desired = request.file_to_generate.to_set
 request.proto_file.select{|f| desired.include?(f.name) }.each do |file|
   bindings[file] ||= []
   file.message_type.each do |message| 
     klass = prefix(file)+message.name
-    bindings[file] << klass
     primary_key = nil
     unique_keys = []
-    foreign_keys = {}
+    foreign_keys = []
+    simple_keys = []
+    composite_keys = message.options && message.options.composite_index || []
+    
+    by_number = {}
+    
     message.field.each do |field|
+      by_number[field.number] = field
       index_type = field.options && field.options.index && field.options.index.type
       case index_type
       when Indexes::PRIMARY; primary_key = field
       when Indexes::UNIQUE; unique_keys << field
+      when Indexes::FOREIGN; foreign_keys << field
+      when Indexes::SIMPLE; simple_keys << field
       end
     end
+
+    next unless primary_key
+    
+    bindings[file] << klass
     %>  
     
     class <%=klass%>Repository: Repository<<%=klass%>> {
-      <% if primary_key %>
-        // findOne
-        func findBy<%=caps(primary_key.name)%>(_ key: <%=type(primary_key) %>) -> Promise<<%=klass%>?> {
-          return self._findByPKRaw(BytesWrapper("<%=klass%>", "<%=caps(primary_key.name)%>", <%=type_label(primary_key)%>: key))
+      override func constructor(data: Data) -> <%=klass%>? {
+        return try? <%=klass%>(serializedData: data)
+      }
+      
+      <% [primary_key].each do |key| %>
+        // Single
+        func findBy<%=caps(key.name)%>(_ key: <%=type(key) %>) -> Promise<<%=klass%>?> {
+          return self._find(Keys.make("<%=klass%>", "<%=key.name%>", <%=type_label(key)%>: key))
         }
-        // findAllArray
-        func findBy<%=caps(primary_key.name)%>s(_ keys: [<%=type(primary_key) %>]) -> Promise<[<%=klass%>?]> {
-          return all(keys.map{ findBy<%=caps(primary_key.name)%>($0)})
+
+        // Multi
+        func findBy<%=caps(key.name)%>(_ keys: [<%=type(key) %>]) -> Promise<[<%=klass%>?]> {
+          return self._find(keys.map { key in Keys.make("<%=klass%>", "<%=key.name%>", <%=type_label(key)%>: key) })
         }
-        
-        // findAllVariadic
-        func findBy<%=caps(primary_key.name)%>s(_ keys: <%=type(primary_key) %>...) -> Promise<[<%=klass%>?]> {
-          return all(keys.map{ findBy<%=caps(primary_key.name)%>($0)})
+                
+        // Range
+        func findBy<%=caps(key.name)%>s(_ range: Range<<%=type(primary_key) %>>, limit: Int = Int.max) -> Promise<[<%=klass%>]> {
+          let lb = Keys.make("<%=klass%>", "<%=key.name%>", <%=type_label(key)%>: range.lowerBound)
+          let ub = Keys.make("<%=klass%>", "<%=key.name%>", <%=type_label(key)%>: range.upperBound)
+          return self._find(lb..<ub, limit: limit)
         }
-        
-        func _findByPKRaw(_ data: BytesWrapper) -> Promise<<%=klass%>?> {
-          return self.storage.get(key: data).then { (maybeBytes: BytesWrapper?) -> <%=klass%>? in
-            if let bytes = maybeBytes {
-              return try! <%=klass%>(serializedData: bytes.toData())
-            } else {
-              return nil
-            }
-          }
+      <% end %>
+      <% unique_keys.each do |key| %>
+        // Single
+        func findBy<%=caps(key.name)%>(_ key: <%=type(key) %>) -> Promise<<%=klass%>?> {
+          return self._indirectFind(Keys.make("<%=klass%>", "<%=key.name%>", <%=type_label(key)%>: key))
+        }
+
+        // Multi
+        func findBy<%=caps(key.name)%>(_ keys: [<%=type(key) %>]) -> Promise<[<%=klass%>?]> {
+          return self._indirectFind(keys.map { key in Keys.make("<%=klass%>", "<%=key.name%>", <%=type_label(key)%>: key) })
+        }
+                
+        // Range
+        func findBy<%=caps(key.name)%>s(_ range: Range<<%=type(primary_key) %>>, limit: Int = Int.max) -> Promise<[<%=klass%>]> {
+          let lb = Keys.make("<%=klass%>", "<%=key.name%>", <%=type_label(key)%>: range.lowerBound)
+          let ub = Keys.make("<%=klass%>", "<%=key.name%>", <%=type_label(key)%>: range.upperBound)
+          return self._indirectFind(lb..<ub, limit: limit)
         }
       <% end %>
       
-      <% unique_keys.each do |field| %>
-        func findBy<%=caps(field.name)%>(_ key: <%=type(field) %>) -> Promise<<%=klass%>?> {
-          return self.storage.get(key: BytesWrapper("<%=klass%>", "<%=caps(field.name)%>", <%=type_label(field)%>: key)).then { (maybeBytes: BytesWrapper?) -> Promise<<%=klass%>?> in
-            if let bytes = maybeBytes {
-              return self._findByPKRaw(bytes)
-            } else {
-              return Promise<<%=klass%>?>(nil)
-            }
-          }
-        }
-        // findAllArray
-        func findBy<%=caps(field.name)%>s(_ keys: [<%=type(field) %>]) -> Promise<[<%=klass%>?]> {
-          return all(keys.map{ findBy<%=caps(field.name)%>($0)})
-        }
-        
-        // findAllVariadic
-        func findBy<%=caps(field.name)%>s(_ keys: <%=type(field) %>...) -> Promise<[<%=klass%>?]> {
-          return all(keys.map{ findBy<%=caps(field.name)%>($0)})
+      <% composite_keys.each_with_index do |key, i| 
+        subfields = key.fields.map{|n| by_number[n] }
+        args = subfields.map{|f| "_ #{f.name}: #{type(f)}"}.join(", ")
+        %>
+        // full exact match
+        func findBy<%=caps(key.name)%>(<%=args%>) -> Promise<<%=klass%>?> {
+          return self._indirectFind(Keys.make("<%=klass%>", "<%=key.name%>"
+          <% subfields.each do |f| %>
+      $trim$ ,
+      $trim$ Jane_Key.with { $0.<%=type_label(f)%> = <%=f.name%> }
+          <% end %>
+          ))
         }
       <% end %>
     }
     
     extension <%=klass%>: StorageMappable {
-      <% if primary_key %>
       public static func with(
           _ populator: (inout <%=klass%>) throws -> ()
         ) rethrows -> <%=klass%> {
@@ -133,24 +201,32 @@ request.proto_file.select{|f| desired.include?(f.name) }.each do |file|
           try populator(&message)
           return message
         }
-      <% end %>
         
-      func toValue() -> BytesWrapper {
-        return BytesWrapper(data: try! serializedData())
+      func toValue() -> Data {
+        return try! serializedData()
       } 
-      func primaryIndex() -> BytesWrapper? {
-        <% if primary_key %>
-          return BytesWrapper("<%=klass%>", "<%=caps(primary_key.name)%>", <%=type_label(primary_key) %>: self.<%=primary_key.name%>)
-        <% else %>
-          return nil
-        <% end %>
+      
+      func primaryIndex() -> Jane_StorageKey {
+          return Keys.make("<%=klass%>", "<%=primary_key.name%>", <%=type_label(primary_key) %>: self.<%=primary_key.name%>)
       }
-      func secondaryIndexes() -> [Index: BytesWrapper] {
-        var out: [Index: BytesWrapper] = [:]
-        <% unique_keys.each do |field| %>
-          out[Index(name: BytesWrapper("<%=klass%>", "<%=caps(field.name)%>", <%=type_label(field)%>: self.<%=field.name%>), unique: true)] = self.primaryIndex()
+      
+      func secondaryIndexes() -> [Jane_StorageKey] {
+        var indexes: [Jane_StorageKey]  = []
+        <% unique_keys.each do |key| %>
+          indexes.append(Keys.make("<%=klass%>", "<%=key.name%>", <%=type_label(key) %>: self.<%=camel(key.name)%>))
         <% end %>
-        return out
+        <% composite_keys.each_with_index do |key, i| 
+          subfields = key.fields.map{|n| by_number[n] }
+          %>
+            indexes.append(Keys.make("<%=klass%>", "<%=key.name%>"
+            <% subfields.each do |f| %>
+        $trim$ ,
+        $trim$ Jane_Key.with { $0.<%=type_label(f)%> = self.<%=camel(f.name)%> }
+            <% end %>
+            ))
+        <% end %>
+        
+        return indexes
       }
       
       static func repository() -> <%=klass%>Repository.Type {

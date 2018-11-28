@@ -2,85 +2,83 @@ import Algorithm
 import Foundation
 import Promises
 
-struct Index: Hashable {
-    var name: BytesWrapper
-    var unique: Bool = false
-}
-
-protocol StorageMapper {
-    associatedtype V
-    func toValue(v: V) -> BytesWrapper
-    func primaryIndex(v: V) -> BytesWrapper?
-    func secondaryIndexes(v: V) -> [Index: BytesWrapper]
-}
-
 protocol StorageMappable {
-    func toValue() -> BytesWrapper
-    func primaryIndex() -> BytesWrapper?
-    func secondaryIndexes() -> [Index: BytesWrapper]
+    func toValue() -> Data
+    func primaryIndex() -> Jane_StorageKey
+    func secondaryIndexes() -> [Jane_StorageKey]
 }
 
 protocol RawStorage {
-    func get(key: BytesWrapper) -> Promise<BytesWrapper?>
-    func range(from: BytesWrapper, to: BytesWrapper, inclusive: Bool) -> Promise<[BytesWrapper]>
-    func put(key: BytesWrapper, value: BytesWrapper) -> Promise<Void>
-    func remove(key: BytesWrapper) -> Promise<Void>
+    func get(key: Jane_StorageKey) -> Promise<Data?>
+    func get(keys: [Jane_StorageKey]) -> Promise<[Data?]>
+    func range(from: Jane_StorageKey, to: Jane_StorageKey, limit: Int) -> Promise<[Data]>
+    func put(pairs: [(Jane_StorageKey, Data)]) -> Promise<Void>
+    func put(key: Jane_StorageKey, value: Data) -> Promise<Void>
+    func remove(keys: [Jane_StorageKey]) -> Promise<Void>
     func transactionally(transaction: @escaping (RawStorage) throws -> Promise<Void>) -> Promise<Void>
 }
 
-struct BytesWrapper: Comparable, Equatable, Hashable, Codable {
-    let array: [UInt8]
-    init(_ tableNS: String, _ fieldNS: String, _ key: Data) {
-        self.array = Array(tableNS.utf8) + Array(fieldNS.utf8) + [UInt8](key)
-    }
-    init(_ tableNS: String, _ fieldNS: String, string: String) {
-        self.array = Array(tableNS.utf8) + Array(fieldNS.utf8) + Array(string.utf8)
-    }
-    init(data: Data) {
-        self.array = [UInt8](data)
-    }
-    init(array: [UInt8]) {
-        self.array = array
-    }
-    init(string: String) {
-        self.array = Array(string.utf8)
+extension RawStorage {
+    func put(key: Jane_StorageKey, value: Data) -> Promise<Void> {
+        return self.put(pairs: [(key, value)])
     }
     
-    func toData() -> Data {
-        return Data(self.array)
+    func get(key: Jane_StorageKey) -> Promise<Data?> {
+        return self.get(keys: [key]).then { $0[0] }
+    }
+}
+
+struct Keys {
+    static func make(_ namespace: String, _ subspace: String, string: String) -> Jane_StorageKey {
+        let key = Jane_Key.with { $0.string = string }
+        return make(namespace, subspace, key)
     }
     
-    static func < (lhs: BytesWrapper, rhs: BytesWrapper) -> Bool {
-        for (l, r) in zip(lhs.array, rhs.array) {
+    static func make(_ namespace: String, _ subspace: String, bytes: Data) -> Jane_StorageKey {
+        let key = Jane_Key.with { $0.bytes = bytes }
+        return make(namespace, subspace, key)
+    }
+    
+    static func make(_ namespace: String, _ subspace: String, _ key: Jane_Key...) -> Jane_StorageKey {
+        return Jane_StorageKey.with{
+            $0.namespace = namespace
+            $0.subspace = subspace;
+            $0.key = key
+        }
+    }
+}
+
+
+extension Jane_StorageKey: Comparable {
+    static func < (lhs: Jane_StorageKey, rhs: Jane_StorageKey) -> Bool {
+        let a = [UInt8](try! lhs.serializedData())
+        let b = [UInt8](try! rhs.serializedData())
+        for (l, r) in zip(a, b) {
             if (l < r) {
                 return true
             } else if (l > r) {
                 return false
             }
         }
-        return lhs.array.count < rhs.array.count
+        return a.count < b.count
     }
-    
 }
 
 class MemoryStorage: RawStorage {
     let transactions = DispatchQueue(label: "memory_storage_transactions")
-    var raw = SortedDictionary<BytesWrapper, BytesWrapper>()
+    var raw = SortedDictionary<Jane_StorageKey, Data>()
     var version = 0
     var refCount: [Int: Int] = [:]
-    var changedKeys: [Int: Set<BytesWrapper>] = [:]
+    var changedKeys: [Int: Set<Jane_StorageKey>] = [:]
     
-    func get(key: BytesWrapper) -> Promise<BytesWrapper?>{
-        return Promise(raw.findValue(for: key))
+    func get(keys: [Jane_StorageKey]) -> Promise<[Data?]> {
+        return all(keys.map{ Promise(raw.findValue(for: $0)) })
     }
     
-    func range(from: BytesWrapper, to: BytesWrapper, inclusive: Bool) -> Promise<[BytesWrapper]> {
-        var answers: [BytesWrapper] = []
+    func range(from: Jane_StorageKey, to: Jane_StorageKey, limit: Int) -> Promise<[Data]> {
+        var answers: [Data] = []
         for key in raw.keys {
-            if key < from || key > to {
-                continue
-            }
-            if (!inclusive && key == to) {
+            if key < from || key >= to || answers.count == limit {
                 continue
             }
             if let value = raw.findValue(for: key) {
@@ -90,15 +88,15 @@ class MemoryStorage: RawStorage {
         return Promise(answers)
     }
     
-    func put(key: BytesWrapper, value: BytesWrapper) -> Promise<Void> {
+    func put(pairs: [(Jane_StorageKey, Data)]) -> Promise<Void> {
         return self.transactionally { transaction in
-            transaction.put(key: key, value: value)
+            return transaction.put(pairs: pairs)
         }
     }
     
-    func remove(key: BytesWrapper) -> Promise<Void> {
+    func remove(keys: [Jane_StorageKey]) -> Promise<Void> {
         return self.transactionally { transaction in
-            transaction.remove(key: key)
+            transaction.remove(keys: keys)
         }
     }
     
@@ -106,7 +104,7 @@ class MemoryStorage: RawStorage {
         let p = Promise<TransactionStore>.pending()
         self.transactions.async {
             self.refCount[self.version] = (self.refCount[self.version] ?? 0) + 1
-            var snapshot = SortedDictionary<BytesWrapper, BytesWrapper>()
+            var snapshot = SortedDictionary<Jane_StorageKey, Data>()
             for (k, v) in self.raw {
                 snapshot[k] = v
             }
@@ -118,7 +116,6 @@ class MemoryStorage: RawStorage {
     func transactionally(transaction: @escaping (RawStorage) throws -> Promise<Void>) -> Promise<Void> {
         return newTransactionStore().then { store -> Promise<Void> in
             try transaction(store).then { _ -> Promise<Void> in
-                print("COMMIT")
                 return store.commit()
             }.recover { e -> Promise<Void> in
                 return store.rollback().then {
@@ -130,22 +127,22 @@ class MemoryStorage: RawStorage {
 }
 
 protocol Op {
-    var key: BytesWrapper { get set }
+    var key: Jane_StorageKey { get set }
 }
 
 class TransactionStore: RawStorage {
     let inner: MemoryStorage
-    var snapshot: SortedDictionary<BytesWrapper, BytesWrapper>
+    var snapshot: SortedDictionary<Jane_StorageKey, Data>
     let readVersion: Int
     var writes: [Op] = []
     
     struct UpdateOp: Op {
-        var key: BytesWrapper
-        var value: BytesWrapper
+        var key: Jane_StorageKey
+        var value: Data
     }
 
     struct RemoveOp: Op {
-        var key: BytesWrapper
+        var key: Jane_StorageKey
     }
     
     func rollback() -> Promise<Void> {
@@ -158,7 +155,7 @@ class TransactionStore: RawStorage {
     }
     
     private func checkForConflicts() throws {
-        var conflictableKeys: Set<BytesWrapper> = []
+        var conflictableKeys: Set<Jane_StorageKey> = []
         
         for i in (readVersion + 1)..<(inner.version + 1) {
             for key in inner.changedKeys[i] ?? [] {
@@ -166,7 +163,7 @@ class TransactionStore: RawStorage {
             }
         }
         
-        var newlyChangedKeys: Set<BytesWrapper> = []
+        var newlyChangedKeys: Set<Jane_StorageKey> = []
         for op in writes {
             newlyChangedKeys.insert(op.key)
         }
@@ -217,23 +214,20 @@ class TransactionStore: RawStorage {
         return p
     }
 
-    init(inner: MemoryStorage, snapshot: SortedDictionary<BytesWrapper, BytesWrapper>, readVersion: Int) {
+    init(inner: MemoryStorage, snapshot: SortedDictionary<Jane_StorageKey, Data>, readVersion: Int) {
         self.inner = inner
         self.snapshot = snapshot
         self.readVersion = readVersion
     }
     
-    func get(key: BytesWrapper) -> Promise<BytesWrapper?>{
-        return Promise(snapshot.findValue(for: key))
+    func get(keys: [Jane_StorageKey]) -> Promise<[Data?]>{
+        return Promise(keys.map { snapshot.findValue(for: $0) })
     }
     
-    func range(from: BytesWrapper, to: BytesWrapper, inclusive: Bool) -> Promise<[BytesWrapper]> {
-        var answers: [BytesWrapper] = []
+    func range(from: Jane_StorageKey, to: Jane_StorageKey, limit: Int) -> Promise<[Data]> {
+        var answers: [Data] = []
         for key in snapshot.keys {
-            if key < from || key > to {
-                continue
-            }
-            if (!inclusive && key == to) {
+            if key < from || key >= to || answers.count == limit {
                 continue
             }
             if let value = snapshot.findValue(for: key) {
@@ -243,19 +237,19 @@ class TransactionStore: RawStorage {
         return Promise(answers)
     }
     
-    func put(key: BytesWrapper, value: BytesWrapper) -> Promise<Void> {
-        writes.append(UpdateOp(key: key, value: value))
-        if snapshot.findValue(for: key) != nil {
-            snapshot.update(value: value, for: key)
-        } else {
-            snapshot.insert(value: value, for: key)
+    func put(pairs: [(Jane_StorageKey, Data)]) -> Promise<Void> {
+        for pair in pairs {
+            writes.append(UpdateOp(key: pair.0, value: pair.1))
+            snapshot.insert(value: pair.1, for: pair.0)
         }
         return Promise(())
     }
     
-    func remove(key: BytesWrapper) -> Promise<Void> {
-        writes.append(RemoveOp(key: key))
-        snapshot.removeValue(for: key)
+    func remove(keys: [Jane_StorageKey]) -> Promise<Void> {
+        for key in keys {
+            writes.append(RemoveOp(key: key))
+            snapshot.removeValue(for: key)
+        }
         return Promise(())
     }
     

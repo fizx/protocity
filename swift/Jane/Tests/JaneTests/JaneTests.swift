@@ -2,6 +2,7 @@ import XCTest
 import Swinject
 import SwinjectAutoregistration
 import Promises
+import SwiftProtobuf
 @testable import Jane
 
 final class JaneTests: XCTestCase {
@@ -20,7 +21,7 @@ final class JaneTests: XCTestCase {
         let repo = c.resolve(Example_User.repository())!
         let user = Example_User.with { $0.id = "kyle" }
         try await(repo.save(user))
-        let saved = try await(repo.findById(user.id))
+        let saved = try await(repo.findById("kyle"))
         XCTAssertNotNil(saved)
         XCTAssertEqual(saved?.id, user.id)
     }
@@ -37,7 +38,7 @@ final class JaneTests: XCTestCase {
         let a = Example_User.with { $0.id = "kyle" }
         let b = Example_User.with { $0.id = "kyle" }
         try await(repo.save(a, b))
-        let saved = try await(repo.findByIds([a.id, b.id, "unknown"]))
+        let saved = try await(repo.findById([a.id, b.id, "unknown"]))
         XCTAssertEqual(saved, [a, b, nil])
     }
     
@@ -46,7 +47,7 @@ final class JaneTests: XCTestCase {
         let a = Example_User.with { $0.login = "kyle" }
         let b = Example_User.with { $0.login = "bob" }
         try await(repo.save(a, b))
-        let saved = try await(repo.findByLogins([a.login, b.login, "unknown"]))
+        let saved = try await(repo.findByLogin([a.login, b.login, "unknown"]))
         XCTAssertEqual(saved, [a, b, nil])
     }
     
@@ -54,15 +55,19 @@ final class JaneTests: XCTestCase {
         let repo = c.resolve(Example_User.repository())!
         let a = Example_User.with { $0.login = "kyle" }
         let b = Example_User.with { $0.login = "kyle" }
-        XCTAssertThrowsError(try await(repo.save(a, b)))
+        XCTAssertThrowsError(try await(repo.save(a,  b)))
     }
     
     func testCompositeKey() throws {
-        let repo = c.resolve(Example_User.repository())!
-        let user = Example_User.with { $0.id = "kyle" }
-        try await(repo.save(user))
-        let saved = try await(repo.findById(user.id))
+        let repo = c.resolve(Example_Message.repository())!
+        let time = Google_Protobuf_Timestamp(date: Date())
+        let message = Example_Message.with {
+            $0.sentAt = time
+            $0.fromUserID = "bob"
+        }
+        try await(repo.save(message))
+        let saved = try await(repo.findBySenderTime("bob", time))
         XCTAssertNotNil(saved)
-        XCTAssertEqual(saved?.id, user.id)
+        XCTAssertEqual(saved?.fromUserID, "bob")
     }
 }

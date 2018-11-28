@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+package jane;
+
+message Index {
+  string namespace = 10;
+  string subspace = 20;
+  bool unique = 30;
+}
+
+message Key {
+  oneof value {
+    string string = 1;
+    int64 integer = 2;
+    double float = 3;
+    google.protobuf.Timestamp timestamp = 4;
+    bytes bytes = 5;
+  }
+}
+
+message StorageKey {
+  string namespace = 10;
+  string subspace = 20;
+  repeated Key key = 30;
+  Key unique_by = 40;
+}
