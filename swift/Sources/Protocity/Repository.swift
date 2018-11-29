@@ -1,4 +1,4 @@
-import Promises
+import NIO
 import SwiftProtobuf
 import Dispatch
 import Foundation
@@ -12,11 +12,11 @@ class Repository<V: StorageMappable> {
     func constructor(data: Data) -> V? {
         return nil
     }
-    func _indirectFind(_ key: Protocity_StorageKey) -> Promise<V?> {
-        return _indirectFind([key]).then { $0[0] }
+    func _indirectFind(_ key: Protocity_StorageKey) -> EventLoopFuture<V?> {
+        return _indirectFind([key]).map { $0[0] }
     }
-    
-    func _indirectFind(_ keys: [Protocity_StorageKey]) -> Promise<[V?]> {
+
+    func _indirectFind(_ keys: [Protocity_StorageKey]) -> EventLoopFuture<[V?]> {
         return storage.get(keys: keys).then { values in
             let newKeys = values.map { value -> Protocity_StorageKey? in
                 if value == nil {
@@ -28,28 +28,27 @@ class Repository<V: StorageMappable> {
             return self._find(newKeys)
         }
     }
-    
-    func _indirectFind(_ range: Range<Protocity_StorageKey>, limit: Int = Int.max) -> Promise<[V]> {
-        return storage.range(from: range.lowerBound, to: range.upperBound, limit: limit).then { values in
+
+    func _indirectFind(_ range: Range<Protocity_StorageKey>, limit: Int = Int.max) -> EventLoopFuture<[V]> {
+        return storage.range(from: range.lowerBound, to: range.upperBound, limit: limit).map { values in
             return values.map { try! Protocity_StorageKey(serializedData: $0) }
         }.then { keys in
             return self._find(keys)
-        }.then { values in
+        }.map { values in
             return values.compactMap{$0}
         }
     }
-    
-    
-    func _find(_ key: Protocity_StorageKey) -> Promise<V?> {
-        return storage.get(key: key).then { value in
-            value.flatMap{
+
+    func _find(_ key: Protocity_StorageKey) -> EventLoopFuture<V?> {
+        return storage.get(key: key).map { value in
+            value.flatMap {
                 self.constructor(data: $0)
             }
         }
     }
     
-    func _find(_ keys: [Protocity_StorageKey?]) -> Promise<[V?]> {
-        return _find(keys.compactMap{$0}).then { answers -> [V?] in
+    func _find(_ keys: [Protocity_StorageKey?]) -> EventLoopFuture<[V?]> {
+        return _find(keys.compactMap{$0}).map { answers -> [V?] in
             var tmp = answers
             var padded: [V?] = []
             for key in keys {
@@ -63,8 +62,8 @@ class Repository<V: StorageMappable> {
         }
     }
     
-    func _find(_ keys: [Protocity_StorageKey]) -> Promise<[V?]> {
-        return storage.get(keys: keys).then { values in
+    func _find(_ keys: [Protocity_StorageKey]) -> EventLoopFuture<[V?]> {
+        return storage.get(keys: keys).map { values in
             return values.map {
                 $0.flatMap {
                     self.constructor(data: $0)
@@ -73,15 +72,15 @@ class Repository<V: StorageMappable> {
         }
     }
     
-    func _find(_ range: Range<Protocity_StorageKey>, limit: Int = Int.max) -> Promise<[V]> {
-        return storage.range(from: range.lowerBound, to: range.upperBound, limit: limit).then { values in
+    func _find(_ range: Range<Protocity_StorageKey>, limit: Int = Int.max) -> EventLoopFuture<[V]> {
+        return storage.range(from: range.lowerBound, to: range.upperBound, limit: limit).map { values in
             return values.map { self.constructor(data: $0)! }
         }
     }
     
-    func save(_ objs: V...) -> Promise<Void> {
+    func save(_ objs: V...) -> EventLoopFuture<Void> {
         return self.storage.transactionally { t in
-            var promises: [Promise<Void>] = []
+            var promises: [EventLoopFuture<Void>] = []
         
             for obj in objs {
                 let key = obj.primaryIndex()
@@ -89,13 +88,13 @@ class Repository<V: StorageMappable> {
                 let value = obj.toValue()
                 promises += [t.put(key: key, value: value)]
                 for index in obj.secondaryIndexes() {
-                    promises += [t.get(key: index).then { (maybeData: Data?) -> Promise<Void> in
+                    promises += [t.get(key: index).then { (maybeData: Data?) -> EventLoopFuture<Void> in
                         if let data = maybeData {
                             let existingKey = try! Protocity_StorageKey(serializedData: data)
                             if existingKey == key {
                                 return t.put(key: index, value: binaryKey)
                             } else {
-                                return Promise(Conflict())
+                                return self.storage.loop().newFailedFuture(error: Conflict())
                             }
                         } else {
                             return t.put(key: index, value: binaryKey)
@@ -104,7 +103,7 @@ class Repository<V: StorageMappable> {
                 }
             }
         
-            return all(promises).void
+            return EventLoopFuture<Void>.andAll(promises, eventLoop: self.storage.loop())
         }
     }
 }

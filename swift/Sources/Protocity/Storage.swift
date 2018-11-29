@@ -1,6 +1,6 @@
 import Algorithm
 import Foundation
-import Promises
+import NIO
 
 protocol StorageMappable {
     func toValue() -> Data
@@ -9,22 +9,24 @@ protocol StorageMappable {
 }
 
 protocol RawStorage {
-    func get(key: Protocity_StorageKey) -> Promise<Data?>
-    func get(keys: [Protocity_StorageKey]) -> Promise<[Data?]>
-    func range(from: Protocity_StorageKey, to: Protocity_StorageKey, limit: Int) -> Promise<[Data]>
-    func put(pairs: [(Protocity_StorageKey, Data)]) -> Promise<Void>
-    func put(key: Protocity_StorageKey, value: Data) -> Promise<Void>
-    func remove(keys: [Protocity_StorageKey]) -> Promise<Void>
-    func transactionally(transaction: @escaping (RawStorage) throws -> Promise<Void>) -> Promise<Void>
+    func loop() -> EventLoop
+    func get(key: Protocity_StorageKey) -> EventLoopFuture<Data?>
+    func get(keys: [Protocity_StorageKey]) -> EventLoopFuture<[Data?]>
+    func range(from: Protocity_StorageKey, to: Protocity_StorageKey, limit: Int) -> EventLoopFuture<[Data]>
+    func put(pairs: [(Protocity_StorageKey, Data)]) -> EventLoopFuture<Void>
+    func put(key: Protocity_StorageKey, value: Data) -> EventLoopFuture<Void>
+    func remove(keys: [Protocity_StorageKey]) -> EventLoopFuture<Void>
+    func transactionally(transaction: @escaping (RawStorage) -> EventLoopFuture<Void>) -> EventLoopFuture<Void>
+    func shutdown() throws -> ()
 }
 
 extension RawStorage {
-    func put(key: Protocity_StorageKey, value: Data) -> Promise<Void> {
+    func put(key: Protocity_StorageKey, value: Data) -> EventLoopFuture<Void> {
         return self.put(pairs: [(key, value)])
     }
     
-    func get(key: Protocity_StorageKey) -> Promise<Data?> {
-        return self.get(keys: [key]).then { $0[0] }
+    func get(key: Protocity_StorageKey) -> EventLoopFuture<Data?> {
+        return self.get(keys: [key]).map { $0[0] }
     }
 }
 
@@ -65,17 +67,30 @@ extension Protocity_StorageKey: Comparable {
 }
 
 class MemoryStorage: RawStorage {
-    let transactions = DispatchQueue(label: "memory_storage_transactions")
+    let transactions = MultiThreadedEventLoopGroup(numberOfThreads: 1).next()
+    let loops: EventLoopGroup
     var raw = SortedDictionary<Protocity_StorageKey, Data>()
     var version = 0
     var refCount: [Int: Int] = [:]
     var changedKeys: [Int: Set<Protocity_StorageKey>] = [:]
     
-    func get(keys: [Protocity_StorageKey]) -> Promise<[Data?]> {
-        return all(keys.map{ Promise(raw.findValue(for: $0)) })
+    func shutdown() throws -> () {
+        try transactions.syncShutdownGracefully()
     }
     
-    func range(from: Protocity_StorageKey, to: Protocity_StorageKey, limit: Int) -> Promise<[Data]> {
+    init(loops: EventLoopGroup) {
+        self.loops = loops
+    }
+    
+    func loop() -> EventLoop {
+        return self.loops.next()
+    }
+    
+    func get(keys: [Protocity_StorageKey]) -> EventLoopFuture<[Data?]> {
+        return loop().newSucceededFuture(result: keys.map { raw.findValue(for: $0) })
+    }
+    
+    func range(from: Protocity_StorageKey, to: Protocity_StorageKey, limit: Int) -> EventLoopFuture<[Data]> {
         var answers: [Data] = []
         for key in raw.keys {
             if key < from || key >= to || answers.count == limit {
@@ -85,41 +100,41 @@ class MemoryStorage: RawStorage {
                 answers.append(value)
             }
         }
-        return Promise(answers)
+        return loop().newSucceededFuture(result: answers)
     }
     
-    func put(pairs: [(Protocity_StorageKey, Data)]) -> Promise<Void> {
+    func put(pairs: [(Protocity_StorageKey, Data)]) -> EventLoopFuture<Void> {
         return self.transactionally { transaction in
             return transaction.put(pairs: pairs)
         }
     }
     
-    func remove(keys: [Protocity_StorageKey]) -> Promise<Void> {
+    func remove(keys: [Protocity_StorageKey]) -> EventLoopFuture<Void> {
         return self.transactionally { transaction in
             transaction.remove(keys: keys)
         }
     }
     
-    func newTransactionStore() -> Promise<TransactionStore> {
-        let p = Promise<TransactionStore>.pending()
-        self.transactions.async {
+    func newTransactionStore() -> EventLoopFuture<TransactionStore> {
+        let p: EventLoopPromise<TransactionStore> = loop().newPromise()
+        self.transactions.submit {
             self.refCount[self.version] = (self.refCount[self.version] ?? 0) + 1
             var snapshot = SortedDictionary<Protocity_StorageKey, Data>()
             for (k, v) in self.raw {
                 snapshot[k] = v
             }
-            p.fulfill(TransactionStore(inner: self, snapshot: snapshot, readVersion: self.version))
+            p.succeed(result: TransactionStore(inner: self, snapshot: snapshot, readVersion: self.version))
         }
-        return p
+        return p.futureResult
     }
     
-    func transactionally(transaction: @escaping (RawStorage) throws -> Promise<Void>) -> Promise<Void> {
-        return newTransactionStore().then { store -> Promise<Void> in
-            try transaction(store).then { _ -> Promise<Void> in
+    func transactionally(transaction: @escaping (RawStorage) -> EventLoopFuture<Void>) -> EventLoopFuture<Void> {
+        return newTransactionStore().then { store -> EventLoopFuture<Void> in
+            return transaction(store).then { _ -> EventLoopFuture<Void> in
                 return store.commit()
-            }.recover { e -> Promise<Void> in
-                return store.rollback().then {
-                    throw e
+            }.thenIfError { e -> EventLoopFuture<Void> in
+                return store.rollback().then { x in
+                    self.loop().newFailedFuture(error: e)
                 }
             }
         }
@@ -140,18 +155,25 @@ class TransactionStore: RawStorage {
         var key: Protocity_StorageKey
         var value: Data
     }
+    
+    func shutdown() throws -> () {
+    }
 
     struct RemoveOp: Op {
         var key: Protocity_StorageKey
     }
     
-    func rollback() -> Promise<Void> {
-        let p = Promise<Void>.pending()
-        inner.transactions.async {
+    func loop() -> EventLoop {
+        return inner.loop()
+    }
+    
+    func rollback() -> EventLoopFuture<Void> {
+        let p: EventLoopPromise<Void> = inner.loop().newPromise()
+        inner.transactions.submit {
             self.inner.refCount[self.readVersion]! -= 1
-            p.fulfill(())
+            p.succeed(result: ())
         }
-        return p
+        return p.futureResult
     }
     
     private func checkForConflicts() throws {
@@ -200,18 +222,18 @@ class TransactionStore: RawStorage {
         }
     }
     
-    func commit() -> Promise<Void> {
-        let p = Promise<Void>.pending()
-        inner.transactions.async {
+    func commit() -> EventLoopFuture<Void> {
+        let p: EventLoopPromise<Void> = inner.loop().newPromise()
+        inner.transactions.submit {
             defer { self.inner.refCount[self.readVersion]! -= 1 }
             do {
                 try self.checkForConflicts()
-                p.fulfill(())
+                p.succeed(result: ())
             } catch {
-                p.reject(error)
+                p.fail(error: error)
             }
         }
-        return p
+        return p.futureResult
     }
 
     init(inner: MemoryStorage, snapshot: SortedDictionary<Protocity_StorageKey, Data>, readVersion: Int) {
@@ -220,11 +242,11 @@ class TransactionStore: RawStorage {
         self.readVersion = readVersion
     }
     
-    func get(keys: [Protocity_StorageKey]) -> Promise<[Data?]>{
-        return Promise(keys.map { snapshot.findValue(for: $0) })
+    func get(keys: [Protocity_StorageKey]) -> EventLoopFuture<[Data?]>{
+        return inner.loop().newSucceededFuture(result: keys.map { snapshot.findValue(for: $0) })
     }
     
-    func range(from: Protocity_StorageKey, to: Protocity_StorageKey, limit: Int) -> Promise<[Data]> {
+    func range(from: Protocity_StorageKey, to: Protocity_StorageKey, limit: Int) -> EventLoopFuture<[Data]> {
         var answers: [Data] = []
         for key in snapshot.keys {
             if key < from || key >= to || answers.count == limit {
@@ -234,27 +256,27 @@ class TransactionStore: RawStorage {
                 answers.append(value)
             }
         }
-        return Promise(answers)
+        return inner.loop().newSucceededFuture(result: answers)
     }
     
-    func put(pairs: [(Protocity_StorageKey, Data)]) -> Promise<Void> {
+    func put(pairs: [(Protocity_StorageKey, Data)]) -> EventLoopFuture<Void> {
         for pair in pairs {
             writes.append(UpdateOp(key: pair.0, value: pair.1))
             snapshot.insert(value: pair.1, for: pair.0)
         }
-        return Promise(())
+        return inner.loop().newSucceededFuture(result: ())
     }
     
-    func remove(keys: [Protocity_StorageKey]) -> Promise<Void> {
+    func remove(keys: [Protocity_StorageKey]) -> EventLoopFuture<Void> {
         for key in keys {
             writes.append(RemoveOp(key: key))
             snapshot.removeValue(for: key)
         }
-        return Promise(())
+        return inner.loop().newSucceededFuture(result: ())
     }
     
-    func transactionally(transaction: @escaping (RawStorage) throws -> Promise<Void>) -> Promise<Void> {
-        return Promise(AlreadyInTransactionBlock())
+    func transactionally(transaction: @escaping (RawStorage) -> EventLoopFuture<Void>) -> EventLoopFuture<Void> {
+        return inner.loop().newFailedFuture(error: AlreadyInTransactionBlock())
     }
 }
 struct Conflict: Error {

@@ -97,7 +97,7 @@ response.file << file
 print response.encode
 
 __END__
-import Promises
+import NIO
 import Protocity
 import Swinject
 import SwinjectAutoregistration
@@ -141,17 +141,17 @@ request.proto_file.select{|f| desired.include?(f.name) }.each do |file|
       
       <% [primary_key].each do |key| %>
         // Single
-        func findBy<%=caps(key.name)%>(_ key: <%=type(key) %>) -> Promise<<%=klass%>?> {
+        func findBy<%=caps(key.name)%>(_ key: <%=type(key) %>) -> EventLoopFuture<<%=klass%>?> {
           return self._find(Keys.make("<%=klass%>", "<%=key.name%>", <%=type_label(key)%>: key))
         }
 
         // Multi
-        func findBy<%=caps(key.name)%>(_ keys: [<%=type(key) %>]) -> Promise<[<%=klass%>?]> {
+        func findBy<%=caps(key.name)%>(_ keys: [<%=type(key) %>]) -> EventLoopFuture<[<%=klass%>?]> {
           return self._find(keys.map { key in Keys.make("<%=klass%>", "<%=key.name%>", <%=type_label(key)%>: key) })
         }
                 
         // Range
-        func findBy<%=caps(key.name)%>s(_ range: Range<<%=type(primary_key) %>>, limit: Int = Int.max) -> Promise<[<%=klass%>]> {
+        func findBy<%=caps(key.name)%>s(_ range: Range<<%=type(primary_key) %>>, limit: Int = Int.max) -> EventLoopFuture<[<%=klass%>]> {
           let lb = Keys.make("<%=klass%>", "<%=key.name%>", <%=type_label(key)%>: range.lowerBound)
           let ub = Keys.make("<%=klass%>", "<%=key.name%>", <%=type_label(key)%>: range.upperBound)
           return self._find(lb..<ub, limit: limit)
@@ -159,17 +159,17 @@ request.proto_file.select{|f| desired.include?(f.name) }.each do |file|
       <% end %>
       <% unique_keys.each do |key| %>
         // Single
-        func findBy<%=caps(key.name)%>(_ key: <%=type(key) %>) -> Promise<<%=klass%>?> {
+        func findBy<%=caps(key.name)%>(_ key: <%=type(key) %>) -> EventLoopFuture<<%=klass%>?> {
           return self._indirectFind(Keys.make("<%=klass%>", "<%=key.name%>", <%=type_label(key)%>: key))
         }
 
         // Multi
-        func findBy<%=caps(key.name)%>(_ keys: [<%=type(key) %>]) -> Promise<[<%=klass%>?]> {
+        func findBy<%=caps(key.name)%>(_ keys: [<%=type(key) %>]) -> EventLoopFuture<[<%=klass%>?]> {
           return self._indirectFind(keys.map { key in Keys.make("<%=klass%>", "<%=key.name%>", <%=type_label(key)%>: key) })
         }
                 
         // Range
-        func findBy<%=caps(key.name)%>s(_ range: Range<<%=type(primary_key) %>>, limit: Int = Int.max) -> Promise<[<%=klass%>]> {
+        func findBy<%=caps(key.name)%>s(_ range: Range<<%=type(primary_key) %>>, limit: Int = Int.max) -> EventLoopFuture<[<%=klass%>]> {
           let lb = Keys.make("<%=klass%>", "<%=key.name%>", <%=type_label(key)%>: range.lowerBound)
           let ub = Keys.make("<%=klass%>", "<%=key.name%>", <%=type_label(key)%>: range.upperBound)
           return self._indirectFind(lb..<ub, limit: limit)
@@ -181,7 +181,7 @@ request.proto_file.select{|f| desired.include?(f.name) }.each do |file|
         args = subfields.map{|f| "_ #{f.name}: #{type(f)}"}.join(", ")
         %>
         // full exact match
-        func findBy<%=caps(key.name)%>(<%=args%>) -> Promise<<%=klass%>?> {
+        func findBy<%=caps(key.name)%>(<%=args%>) -> EventLoopFuture<<%=klass%>?> {
           return self._indirectFind(Keys.make("<%=klass%>", "<%=key.name%>"
           <% subfields.each do |f| %>
       $trim$ ,
@@ -197,7 +197,7 @@ request.proto_file.select{|f| desired.include?(f.name) }.each do |file|
           last = subfields.pop
           args = subfields.map{|f| "#{camel(f.name)}: #{type(f)}"}.join(", ")
           %>
-          func findBy<%=caps(key.name)%>(<%=args%>, limit: Int = Int.max) -> Promise<[<%=klass%>]> {
+          func findBy<%=caps(key.name)%>(<%=args%>, limit: Int = Int.max) -> EventLoopFuture<[<%=klass%>]> {
             let lowerBound = Keys.make("<%=klass%>", "<%=key.name%>"
             <% subfields.each do |f| %>
         $trim$ ,

@@ -1,17 +1,24 @@
 import XCTest
 import Swinject
 import SwinjectAutoregistration
-import Promises
 import SwiftProtobuf
+import NIO
+
 @testable import Protocity
 
 final class ProtocityTests: XCTestCase {
     var c: Container = Container()
     
     override func setUp() {
-        DispatchQueue.promises = .global()
+        c = Container()
+        c.register(EventLoopGroup.self) { _ in MultiThreadedEventLoopGroup(numberOfThreads: 4) }
         c.autoregister(RawStorage.self, initializer: MemoryStorage.init)
         Example_Binder.bind(c)
+    }
+    
+    override func tearDown() {
+        try! c.resolve(RawStorage.self)!.shutdown()
+        try! c.resolve(EventLoopGroup.self)!.syncShutdownGracefully()
     }
     
     func testCanBind() {
@@ -20,8 +27,8 @@ final class ProtocityTests: XCTestCase {
     func testFindOne() throws {
         let repo = c.resolve(Example_User.repository())!
         let user = Example_User.with { $0.id = "kyle" }
-        try await(repo.save(user))
-        let saved = try await(repo.findById("kyle"))
+        try repo.save(user).wait()
+        let saved = try repo.findById("kyle").wait()
         XCTAssertNotNil(saved)
         XCTAssertEqual(saved?.id, user.id)
     }
@@ -37,8 +44,8 @@ final class ProtocityTests: XCTestCase {
         let repo = c.resolve(Example_User.repository())!
         let a = Example_User.with { $0.id = "kyle" }
         let b = Example_User.with { $0.id = "kyle" }
-        try await(repo.save(a, b))
-        let saved = try await(repo.findById([a.id, b.id, "unknown"]))
+        try repo.save(a, b).wait()
+        let saved = try repo.findById([a.id, b.id, "unknown"]).wait()
         XCTAssertEqual(saved, [a, b, nil])
     }
     
@@ -46,8 +53,8 @@ final class ProtocityTests: XCTestCase {
         let repo = c.resolve(Example_User.repository())!
         let a = Example_User.with { $0.login = "kyle" }
         let b = Example_User.with { $0.login = "bob" }
-        try await(repo.save(a, b))
-        let saved = try await(repo.findByLogin([a.login, b.login, "unknown"]))
+        try repo.save(a, b).wait()
+        let saved = try repo.findByLogin([a.login, b.login, "unknown"]).wait()
         XCTAssertEqual(saved, [a, b, nil])
     }
     
@@ -55,7 +62,7 @@ final class ProtocityTests: XCTestCase {
         let repo = c.resolve(Example_User.repository())!
         let a = Example_User.with { $0.login = "kyle" }
         let b = Example_User.with { $0.login = "kyle" }
-        XCTAssertThrowsError(try await(repo.save(a,  b)))
+        XCTAssertThrowsError(try repo.save(a,  b).wait())
     }
     
     func testCompositeKey() throws {
@@ -65,8 +72,8 @@ final class ProtocityTests: XCTestCase {
             $0.sentAt = time
             $0.fromUserID = "bob"
         }
-        try await(repo.save(message))
-        let saved = try await(repo.findBySenderTime("bob", time))
+        try repo.save(message).wait()
+        let saved = try repo.findBySenderTime("bob", time).wait()
         XCTAssertNotNil(saved)
         XCTAssertEqual(saved?.fromUserID, "bob")
     }
@@ -77,8 +84,8 @@ final class ProtocityTests: XCTestCase {
             $0.sentAt = time
             $0.fromUserID = "bob"
         }
-        try await(repo.save(message))
-        let saved = try await(repo.findBySenderTime(fromUserID: "bob"))
+        try repo.save(message).wait()
+        let saved = try repo.findBySenderTime(fromUserID: "bob").wait()
         XCTAssertEqual(saved.count, 1)
         XCTAssertEqual(saved[0].fromUserID, "bob")
     }

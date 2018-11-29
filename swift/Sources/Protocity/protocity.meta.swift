@@ -1,5 +1,5 @@
 import Foundation
-import Promises
+import NIO
 import Protocity
 import SwiftProtobuf
 import Swinject
@@ -11,34 +11,34 @@ class Example_UserRepository: Repository<Example_User> {
     }
 
     // Single
-    func findById(_ key: String) -> Promise<Example_User?> {
+    func findById(_ key: String) -> EventLoopFuture<Example_User?> {
         return _find(Keys.make("Example_User", "id", string: key))
     }
 
     // Multi
-    func findById(_ keys: [String]) -> Promise<[Example_User?]> {
+    func findById(_ keys: [String]) -> EventLoopFuture<[Example_User?]> {
         return _find(keys.map { key in Keys.make("Example_User", "id", string: key) })
     }
 
     // Range
-    func findByIds(_ range: Range<String>, limit: Int = Int.max) -> Promise<[Example_User]> {
+    func findByIds(_ range: Range<String>, limit: Int = Int.max) -> EventLoopFuture<[Example_User]> {
         let lb = Keys.make("Example_User", "id", string: range.lowerBound)
         let ub = Keys.make("Example_User", "id", string: range.upperBound)
         return _find(lb ..< ub, limit: limit)
     }
 
     // Single
-    func findByLogin(_ key: String) -> Promise<Example_User?> {
+    func findByLogin(_ key: String) -> EventLoopFuture<Example_User?> {
         return _indirectFind(Keys.make("Example_User", "login", string: key))
     }
 
     // Multi
-    func findByLogin(_ keys: [String]) -> Promise<[Example_User?]> {
+    func findByLogin(_ keys: [String]) -> EventLoopFuture<[Example_User?]> {
         return _indirectFind(keys.map { key in Keys.make("Example_User", "login", string: key) })
     }
 
     // Range
-    func findByLogins(_ range: Range<String>, limit: Int = Int.max) -> Promise<[Example_User]> {
+    func findByLogins(_ range: Range<String>, limit: Int = Int.max) -> EventLoopFuture<[Example_User]> {
         let lb = Keys.make("Example_User", "login", string: range.lowerBound)
         let ub = Keys.make("Example_User", "login", string: range.upperBound)
         return _indirectFind(lb ..< ub, limit: limit)
@@ -82,17 +82,17 @@ class Example_AccountRepository: Repository<Example_Account> {
     }
 
     // Single
-    func findById(_ key: String) -> Promise<Example_Account?> {
+    func findById(_ key: String) -> EventLoopFuture<Example_Account?> {
         return _find(Keys.make("Example_Account", "id", string: key))
     }
 
     // Multi
-    func findById(_ keys: [String]) -> Promise<[Example_Account?]> {
+    func findById(_ keys: [String]) -> EventLoopFuture<[Example_Account?]> {
         return _find(keys.map { key in Keys.make("Example_Account", "id", string: key) })
     }
 
     // Range
-    func findByIds(_ range: Range<String>, limit: Int = Int.max) -> Promise<[Example_Account]> {
+    func findByIds(_ range: Range<String>, limit: Int = Int.max) -> EventLoopFuture<[Example_Account]> {
         let lb = Keys.make("Example_Account", "id", string: range.lowerBound)
         let ub = Keys.make("Example_Account", "id", string: range.upperBound)
         return _find(lb ..< ub, limit: limit)
@@ -134,33 +134,33 @@ class Example_MessageRepository: Repository<Example_Message> {
     }
 
     // Single
-    func findById(_ key: String) -> Promise<Example_Message?> {
+    func findById(_ key: String) -> EventLoopFuture<Example_Message?> {
         return _find(Keys.make("Example_Message", "id", string: key))
     }
 
     // Multi
-    func findById(_ keys: [String]) -> Promise<[Example_Message?]> {
+    func findById(_ keys: [String]) -> EventLoopFuture<[Example_Message?]> {
         return _find(keys.map { key in Keys.make("Example_Message", "id", string: key) })
     }
 
     // Range
-    func findByIds(_ range: Range<String>, limit: Int = Int.max) -> Promise<[Example_Message]> {
+    func findByIds(_ range: Range<String>, limit: Int = Int.max) -> EventLoopFuture<[Example_Message]> {
         let lb = Keys.make("Example_Message", "id", string: range.lowerBound)
         let ub = Keys.make("Example_Message", "id", string: range.upperBound)
         return _find(lb ..< ub, limit: limit)
     }
 
     // full exact match
-    func findBySenderTime(_ from_user_id: String, _ sent_at: Google_Protobuf_Timestamp) -> Promise<Example_Message?> {
+    func findBySenderTime(_ from_user_id: String, _ sent_at: Google_Protobuf_Timestamp) -> EventLoopFuture<Example_Message?> {
         return _indirectFind(Keys.make("Example_Message", "sender_time", Protocity_Key.with { $0.string = from_user_id }, Protocity_Key.with { $0.timestamp = sent_at }))
     }
 
     // full exact match
-    func findByRecipientTime(_ to_user_id: String, _ sent_at: Google_Protobuf_Timestamp) -> Promise<Example_Message?> {
+    func findByRecipientTime(_ to_user_id: String, _ sent_at: Google_Protobuf_Timestamp) -> EventLoopFuture<Example_Message?> {
         return _indirectFind(Keys.make("Example_Message", "recipient_time", Protocity_Key.with { $0.string = to_user_id }, Protocity_Key.with { $0.timestamp = sent_at }))
     }
 
-    func findBySenderTime(fromUserID: String, limit: Int = Int.max) -> Promise<[Example_Message]> {
+    func findBySenderTime(fromUserID: String, limit: Int = Int.max) -> EventLoopFuture<[Example_Message]> {
         let lowerBound = Keys.make("Example_Message", "sender_time", Protocity_Key.with { $0.string = fromUserID })
         let upperBound = Keys.make("Example_Message", "sender_time", Protocity_Key.with { $0.string = fromUserID }
                                    ,
@@ -168,7 +168,7 @@ class Example_MessageRepository: Repository<Example_Message> {
         return _indirectFind(lowerBound ..< upperBound, limit: limit)
     }
 
-    func findByRecipientTime(toUserID: String, limit: Int = Int.max) -> Promise<[Example_Message]> {
+    func findByRecipientTime(toUserID: String, limit: Int = Int.max) -> EventLoopFuture<[Example_Message]> {
         let lowerBound = Keys.make("Example_Message", "recipient_time", Protocity_Key.with { $0.string = toUserID })
         let upperBound = Keys.make("Example_Message", "recipient_time", Protocity_Key.with { $0.string = toUserID }
                                    ,
@@ -216,17 +216,17 @@ class Example_PhotoRepository: Repository<Example_Photo> {
     }
 
     // Single
-    func findById(_ key: String) -> Promise<Example_Photo?> {
+    func findById(_ key: String) -> EventLoopFuture<Example_Photo?> {
         return _find(Keys.make("Example_Photo", "id", string: key))
     }
 
     // Multi
-    func findById(_ keys: [String]) -> Promise<[Example_Photo?]> {
+    func findById(_ keys: [String]) -> EventLoopFuture<[Example_Photo?]> {
         return _find(keys.map { key in Keys.make("Example_Photo", "id", string: key) })
     }
 
     // Range
-    func findByIds(_ range: Range<String>, limit: Int = Int.max) -> Promise<[Example_Photo]> {
+    func findByIds(_ range: Range<String>, limit: Int = Int.max) -> EventLoopFuture<[Example_Photo]> {
         let lb = Keys.make("Example_Photo", "id", string: range.lowerBound)
         let ub = Keys.make("Example_Photo", "id", string: range.upperBound)
         return _find(lb ..< ub, limit: limit)
